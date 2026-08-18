@@ -177,4 +177,18 @@ final class ClaudeStatusDecodingTests: XCTestCase {
         XCTAssertEqual(summary.components[1].name, "Claude Console")
         XCTAssertTrue(summary.incidents.isEmpty)
     }
+
+    func testClaudeStatusIconGeneration() {
+        let size = NSSize(width: 18, height: 18)
+        let iconOperational = claudeStatusIcon(status: .operational, size: size)
+        let iconMinor = claudeStatusIcon(status: .minor, size: size)
+        let iconMajor = claudeStatusIcon(status: .major, size: size)
+        let iconUnknown = claudeStatusIcon(status: .unknown, size: size)
+
+        XCTAssertEqual(iconOperational.size, size)
+        XCTAssertEqual(iconMinor.size, size)
+        XCTAssertEqual(iconMajor.size, size)
+        XCTAssertEqual(iconUnknown.size, size)
+        XCTAssertFalse(iconOperational.isTemplate)
+    }
 }
