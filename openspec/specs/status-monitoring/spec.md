@@ -26,7 +26,7 @@ The application SHALL render a native macOS menu bar status item displaying curr
 
 #### Scenario: Custom status icon rendering
 - **WHEN** rendering the menu bar status item or status header
-- **THEN** the icon displays a blacked-out Claude spark shape embedded inside a background badge colored according to current API status (green, yellow, red, or gray).
+- **THEN** the icon displays the official black Anthropic Claude logo SVG shape centered inside a circular background badge colored according to current API status (green, yellow, red, or gray).
 
 #### Scenario: Manual refresh action
 - **WHEN** the user clicks "Refresh Now" in the menu
