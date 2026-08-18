@@ -1,6 +1,26 @@
+# OS Artifacts
 .DS_Store
-/.build
-/.swiftpm
-/DerivedData
+.AppleDouble
+.LSOverride
+Icon?
+
+# Swift & SPM Build Artifacts
+/.build/
+/.swiftpm/
+/build/
+
+# Xcode Build Artifacts & User Data
+/DerivedData/
 *.xcodeproj/xcuserdata/
 *.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcworkspace/xcuserdata/
+xcuserdata/
+*.moved-aside
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
