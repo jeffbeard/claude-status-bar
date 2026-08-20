@@ -1,6 +1,6 @@
 ## 1. Specification & Spec Setup
 - [x] 1.1 Create OpenSpec change proposal `bugfix-review-high-severity`
-- [ ] 1.2 Validate proposal with `openspec validate bugfix-review-high-severity --strict` (openspec CLI not installed on this machine)
+- [x] 1.2 Validate proposal with `openspec validate bugfix-review-high-severity --strict`
 
 ## 2. Test-Driven Development (TDD)
 - [x] 2.1 Add failing tests in `StatusManagerRefreshTests` for refresh success, refresh failure, and tint clearing on failure
@@ -17,4 +17,4 @@
 ## 4. Verification & Execution
 - [x] 4.1 `swift test` — 12 tests, 0 failures
 - [x] 4.2 `xcodebuild clean build` — BUILD SUCCEEDED
-- [ ] 4.3 Open pull request to `main` for human review
+- [x] 4.3 Open pull request to `main` for human review (PR #5, merged)

@@ -1,5 +1,11 @@
 # status-monitoring Capability
 
+## Purpose
+
+Keeps macOS users continuously informed of Anthropic Claude service health by polling the
+public status feed and surfacing overall status, per-service state, and active incidents
+in the menu bar.
+
 ## Requirements
 
 ### Requirement: Status Fetching and Indicator Mapping
@@ -33,7 +39,8 @@ The application SHALL render a native macOS menu bar status item displaying curr
 - **THEN** the application immediately polls `https://status.claude.com/api/v2/summary.json` and updates the view.
 
 ### Requirement: User Notifications and Visual Alerts
-The application SHALL notify the user when Claude status changes.
+The application SHALL notify the user when Claude status changes, and SHALL NOT display
+visual alerts that contradict the currently known status.
 
 #### Scenario: Status change notification
 - **WHEN** Claude overall status transitions from one state to another (e.g. operational to minor outage)
@@ -42,3 +49,7 @@ The application SHALL notify the user when Claude status changes.
 #### Scenario: Menu bar screen tinting
 - **WHEN** "Tint Menu Bar on Issues" is enabled and a minor or major issue is active
 - **THEN** a tinted window overlay highlights the top menu bar area.
+
+#### Scenario: Tint cleared when status becomes unknown
+- **WHEN** a status fetch fails and the overall status falls back to unknown
+- **THEN** any menu bar tint overlay is removed so the overlay never contradicts the status icon.
