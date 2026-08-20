@@ -4,7 +4,7 @@
 
 **Goal:** Build Claude Status Bar into a verified, drag-to-`/Applications` disk image with one command: `./scripts/package.sh`.
 
-**Architecture:** A single Bash script drives `xcodebuild` (ad-hoc signed Release build, by `-target` not `-scheme`) and `hdiutil` (`UDZO` image). The image is written to a temp path, mounted and checked, and only then moved into `dist/`. All temp state is removed by an `EXIT` trap.
+**Architecture:** A single Bash script drives `xcodebuild` (ad-hoc signed Release build) and `hdiutil` (`UDZO` image). The image is written to a temp path, mounted and checked, and only then moved into `dist/`. All temp state is removed by an `EXIT` trap.
 
 **Tech Stack:** Bash, `xcodebuild`, `hdiutil`, `codesign`. No new dependencies.
 
@@ -160,9 +160,13 @@ Insert after `resolve_version()`:
 ```bash
 # Build a Release .app into the work directory.
 #
-# Uses -target rather than -scheme: the project's only scheme is autocreated
-# by Xcode and lives in gitignored xcuserdata, so it does not exist in a
-# fresh clone.
+# Uses -scheme rather than -target: this xcodebuild (Xcode 26.5) refuses
+# -derivedDataPath without -scheme ("-scheme, -testProductsPath, or
+# -xctestrun is required when specifying -derivedDataPath"). The project has
+# no checked-in .xcscheme file and no xcuserdata directory in this clone, yet
+# `xcodebuild -project ... -list` still reports a "ClaudeStatusBar" scheme --
+# Xcode autocreates the single-target scheme on the fly without persisting
+# it to disk, so -scheme "$APP_NAME" resolves the same in a fresh clone.
 #
 # CODE_SIGN_IDENTITY="-" requests ad-hoc signing. This is required, not
 # cosmetic: the app declares com.apple.security.app-sandbox, and entitlements
@@ -172,7 +176,7 @@ build_app() {
 
     xcodebuild \
         -project "$PROJECT" \
-        -target "$APP_NAME" \
+        -scheme "$APP_NAME" \
         -configuration Release \
         -derivedDataPath "$derived_data" \
         CODE_SIGN_IDENTITY="-" \
@@ -224,8 +228,10 @@ If `xcodebuild` fails the full build log is dumped to stderr and the script exit
 git add scripts/package.sh
 git commit -m "chore: build ad-hoc signed Release app in packaging script
 
-Builds by -target rather than -scheme so the build works from a fresh
-clone, where the autocreated scheme in xcuserdata does not exist.
+Builds by -scheme rather than -target: this xcodebuild refuses
+-derivedDataPath without -scheme, and the project's single-target
+scheme resolves the same in a fresh clone (Xcode synthesizes it
+without needing a persisted .xcscheme or xcuserdata).
 
 Refs #9"
 ```

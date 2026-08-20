@@ -58,7 +58,7 @@ argument. Abort if the key is absent or resolves to more than one distinct value
 ```
 xcodebuild \
   -project ClaudeStatusBar.xcodeproj \
-  -target ClaudeStatusBar \
+  -scheme ClaudeStatusBar \
   -configuration Release \
   -derivedDataPath "$BUILD_DIR" \
   CODE_SIGN_IDENTITY="-" \
@@ -66,9 +66,17 @@ xcodebuild \
   DEVELOPMENT_TEAM=""
 ```
 
-`-target` is used rather than `-scheme`. The project's only scheme is Xcode-autocreated and
-lives under `xcuserdata/`, which is gitignored — it does not exist in a fresh clone, so a
-scheme-based build is not reproducible.
+`-scheme` is used rather than `-target`. `-target` was the original intent, on the theory
+that the project's only scheme is Xcode-autocreated and would not exist in a fresh clone.
+That turned out to be wrong on both counts. Xcode 26.5's `xcodebuild` refuses
+`-derivedDataPath` without `-scheme`:
+
+> `xcodebuild: error: The flag -scheme, -testProductsPath, or -xctestrun is required when specifying -derivedDataPath.`
+
+And the scheme needs no checked-in file: the project contains no `.xcscheme` and no
+`xcuserdata/`, yet `xcodebuild -project ... -list` still reports a `ClaudeStatusBar` scheme.
+Xcode synthesizes the single-target scheme on the fly, so `-scheme` resolves identically in
+a fresh clone.
 
 `CODE_SIGN_IDENTITY="-"` requests ad-hoc signing. This matters: the app declares the
 `com.apple.security.app-sandbox` entitlement, and entitlements are only honored on a signed
