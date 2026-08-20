@@ -38,14 +38,14 @@ public class StatusManager: ObservableObject {
 
     private let service: any StatusFetching
     private var timer: Timer?
-    private var tintWindows: [NSWindow] = []
+    private(set) var tintWindows: [NSWindow] = []
+    private var appliedTintColor: NSColor?
+    private var appliedScreenFrames: [NSRect] = []
     private var lastKnownStatus: StatusIndicator = .unknown
     private var isRefreshing = false
     private let refreshInterval: TimeInterval = 60
     private var animationTask: Task<Void, Never>?
-    private var tintPulseTimer: Timer?
-    private var tintPulseStartTime: Date?
-    nonisolated(unsafe) private var screenParametersObserver: (any NSObjectProtocol)?
+    private var screenObserverTask: Task<Void, Never>?
 
     /// - Parameters:
     ///   - service: Status feed used by `refresh()`.
@@ -57,24 +57,20 @@ public class StatusManager: ObservableObject {
             launchAtLogin = SMAppService.mainApp.status == .enabled
         }
         tintMenuBar = UserDefaults.standard.bool(forKey: "tintMenuBar")
-        screenParametersObserver = NotificationCenter.default.addObserver(
-            forName: NSApplication.didChangeScreenParametersNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor in
-                self?.handleScreenParametersChange()
+        // Holds self weakly and returns once the manager is gone, so no removal from
+        // deinit — which cannot touch isolated state under Swift 6 — is needed.
+        screenObserverTask = Task { [weak self] in
+            let notifications = NotificationCenter.default.notifications(
+                named: NSApplication.didChangeScreenParametersNotification
+            )
+            for await _ in notifications {
+                guard let self else { return }
+                self.handleScreenParametersChange()
             }
         }
         if autoStart {
             requestNotificationPermission()
             startPolling()
-        }
-    }
-
-    deinit {
-        if let screenParametersObserver {
-            NotificationCenter.default.removeObserver(screenParametersObserver)
         }
     }
 
@@ -205,26 +201,31 @@ public class StatusManager: ObservableObject {
 
     // MARK: - Menu Bar Tint Pulse
 
+    /// The tint for a status. The animated phase also tints operational green and uses a
+    /// stronger alpha; the steady state leaves operational untinted.
+    func tintColor(for status: StatusIndicator, animating: Bool) -> NSColor? {
+        switch status {
+        case .minor:
+            return NSColor.systemYellow.withAlphaComponent(animating ? 0.20 : 0.15)
+        case .major, .critical:
+            return NSColor.systemRed.withAlphaComponent(animating ? 0.20 : 0.15)
+        case .operational:
+            return animating ? NSColor.systemGreen.withAlphaComponent(0.15) : nil
+        case .unknown:
+            return nil
+        }
+    }
+
     private func setupTintForAnimation() {
         removeTintWindows()
-        guard tintMenuBar else { return }
-
-        let tintColor: NSColor
-        switch currentStatus {
-        case .minor:
-            tintColor = NSColor.systemYellow.withAlphaComponent(0.20)
-        case .major, .critical:
-            tintColor = NSColor.systemRed.withAlphaComponent(0.20)
-        case .operational:
-            tintColor = NSColor.systemGreen.withAlphaComponent(0.15)
-        case .unknown:
-            return
-        }
+        guard tintMenuBar, let color = tintColor(for: currentStatus, animating: true) else { return }
 
         tintWindows = NSScreen.screens.map {
-            makeTintWindow(color: tintColor, screen: $0, initialAlpha: 0.0)
+            makeTintWindow(color: color, screen: $0, initialAlpha: 0.0)
         }
         tintedStatus = currentStatus
+        appliedTintColor = color
+        appliedScreenFrames = NSScreen.screens.map(\.frame)
     }
 
     private func fadeTintWindows(to alpha: CGFloat, timing: CAMediaTimingFunctionName) {
@@ -238,7 +239,9 @@ public class StatusManager: ObservableObject {
         }
     }
 
-    private func startTintPulse() {
+    /// Pulses between full and near-transparent on a 1.25s cycle, matching the cadence the
+    /// previous per-frame timer produced but leaving the work to Core Animation.
+    func startTintPulse() {
         guard !tintWindows.isEmpty else { return }
         guard !reduceMotionEnabled else {
             for window in tintWindows {
@@ -247,30 +250,26 @@ public class StatusManager: ObservableObject {
             return
         }
 
-        tintPulseStartTime = Date()
-
-        tintPulseTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / 60.0, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                guard let self, !self.tintWindows.isEmpty, let startTime = self.tintPulseStartTime else {
-                    self?.tintPulseTimer?.invalidate()
-                    self?.tintPulseTimer = nil
-                    return
-                }
-                let elapsed = Date().timeIntervalSince(startTime)
-                let phase = sin(elapsed * 2.0 * .pi / 1.25)
-                let alpha = 0.55 + 0.45 * phase
-                for window in self.tintWindows {
-                    window.alphaValue = CGFloat(alpha)
-                }
-            }
+        for window in tintWindows {
+            guard let layer = window.contentView?.layer else { continue }
+            let pulse = CABasicAnimation(keyPath: "opacity")
+            pulse.fromValue = 1.0
+            pulse.toValue = 0.10
+            pulse.duration = 0.625
+            pulse.autoreverses = true
+            pulse.repeatCount = .infinity
+            pulse.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            layer.add(pulse, forKey: Self.tintPulseAnimationKey)
         }
     }
 
-    private func stopTintPulse() {
-        tintPulseTimer?.invalidate()
-        tintPulseTimer = nil
-        tintPulseStartTime = nil
+    func stopTintPulse() {
+        for window in tintWindows {
+            window.contentView?.layer?.removeAnimation(forKey: Self.tintPulseAnimationKey)
+        }
     }
+
+    private static let tintPulseAnimationKey = "tintPulse"
 
     // MARK: - Notifications
 
@@ -334,22 +333,23 @@ public class StatusManager: ObservableObject {
     // MARK: - Menu Bar Tint
 
     public func updateMenuBarTint() {
-        removeTintWindows()
-        guard tintMenuBar else { return }
+        let desired = tintMenuBar ? tintColor(for: currentStatus, animating: false) : nil
+        let screens = NSScreen.screens
+        let frames = screens.map(\.frame)
 
-        let tintColor: NSColor?
-        switch currentStatus {
-        case .minor:
-            tintColor = NSColor.systemYellow.withAlphaComponent(0.15)
-        case .major, .critical:
-            tintColor = NSColor.systemRed.withAlphaComponent(0.15)
-        default:
-            tintColor = nil
+        // Polls that change nothing must leave the existing overlay alone: rebuilding it
+        // every minute flickers and churns windows for no visible gain.
+        if desired == appliedTintColor, frames == appliedScreenFrames {
+            return
         }
 
-        guard let color = tintColor else { return }
+        removeTintWindows()
+        appliedTintColor = desired
+        appliedScreenFrames = frames
 
-        tintWindows = NSScreen.screens.map {
+        guard let color = desired else { return }
+
+        tintWindows = screens.map {
             makeTintWindow(color: color, screen: $0, initialAlpha: 1.0)
         }
         tintedStatus = currentStatus
@@ -363,6 +363,7 @@ public class StatusManager: ObservableObject {
             defer: false
         )
 
+        window.contentView?.wantsLayer = true
         window.level = .statusBar
         window.backgroundColor = color
         window.isOpaque = false
@@ -376,6 +377,8 @@ public class StatusManager: ObservableObject {
 
     private func removeTintWindows() {
         tintedStatus = nil
+        appliedTintColor = nil
+        appliedScreenFrames = []
         for window in tintWindows {
             window.orderOut(nil)
         }

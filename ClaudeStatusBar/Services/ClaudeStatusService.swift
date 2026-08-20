@@ -11,7 +11,11 @@ public actor ClaudeStatusService: StatusFetching {
     private let summaryURL = URL(string: "https://status.claude.com/api/v2/summary.json")!
     private static let maxResponseBytes = 2 * 1024 * 1024
 
-    private let session: URLSession = {
+    private let session: URLSession
+
+    /// The tuned session used in production: ephemeral, cookie-free, with request and
+    /// resource timeouts.
+    public static func makeDefaultSession() -> URLSession {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.timeoutIntervalForRequest = 15
         configuration.timeoutIntervalForResource = 30
@@ -19,7 +23,7 @@ public actor ClaudeStatusService: StatusFetching {
         configuration.httpCookieAcceptPolicy = .never
         configuration.requestCachePolicy = .useProtocolCachePolicy
         return URLSession(configuration: configuration)
-    }()
+    }
 
     nonisolated(unsafe) private static let fractionalSecondsFormatter: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
@@ -53,7 +57,11 @@ public actor ClaudeStatusService: StatusFetching {
         return decoder
     }()
 
-    public init() {}
+    /// - Parameter session: Transport used for requests. Tests inject a session backed by
+    ///   a `URLProtocol` stub.
+    public init(session: URLSession = ClaudeStatusService.makeDefaultSession()) {
+        self.session = session
+    }
 
     public func fetchSummary() async throws -> SummaryResponse {
         let data = try await fetchJSON(from: summaryURL)
