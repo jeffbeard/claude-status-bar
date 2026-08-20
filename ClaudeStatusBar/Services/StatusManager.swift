@@ -34,6 +34,9 @@ public class StatusManager: ObservableObject {
     }
     @Published public var animationPhase: AnimationPhase = .idle
 
+    public private(set) var tintedStatus: StatusIndicator?
+
+    private let service: any StatusFetching
     private var timer: Timer?
     private var tintWindows: [NSWindow] = []
     private var lastKnownStatus: StatusIndicator = .unknown
@@ -44,9 +47,13 @@ public class StatusManager: ObservableObject {
     private var tintPulseStartTime: Date?
     nonisolated(unsafe) private var screenParametersObserver: (any NSObjectProtocol)?
 
-    public init() {
-        let isTesting = NSClassFromString("XCTestCase") != nil
-        if !isTesting {
+    /// - Parameters:
+    ///   - service: Status feed used by `refresh()`.
+    ///   - autoStart: When `true` the manager registers for notifications, reads the
+    ///     login-item state and begins polling. Pass `false` for tests and previews.
+    public init(service: any StatusFetching = ClaudeStatusService.shared, autoStart: Bool = true) {
+        self.service = service
+        if autoStart {
             launchAtLogin = SMAppService.mainApp.status == .enabled
         }
         tintMenuBar = UserDefaults.standard.bool(forKey: "tintMenuBar")
@@ -59,7 +66,7 @@ public class StatusManager: ObservableObject {
                 self?.handleScreenParametersChange()
             }
         }
-        if !isTesting {
+        if autoStart {
             requestNotificationPermission()
             startPolling()
         }
@@ -102,7 +109,7 @@ public class StatusManager: ObservableObject {
         }
 
         do {
-            let summary = try await ClaudeStatusService.shared.fetchSummary()
+            let summary = try await service.fetchSummary()
             let newStatus = summary.status.indicator
             let newDescription = summary.status.description
 
@@ -126,6 +133,7 @@ public class StatusManager: ObservableObject {
             errorMessage = error.localizedDescription
             currentStatus = .unknown
             statusDescription = "Failed to fetch status"
+            updateMenuBarTint()
         }
     }
 
@@ -216,6 +224,7 @@ public class StatusManager: ObservableObject {
         tintWindows = NSScreen.screens.map {
             makeTintWindow(color: tintColor, screen: $0, initialAlpha: 0.0)
         }
+        tintedStatus = currentStatus
     }
 
     private func fadeTintWindows(to alpha: CGFloat, timing: CAMediaTimingFunctionName) {
@@ -343,6 +352,7 @@ public class StatusManager: ObservableObject {
         tintWindows = NSScreen.screens.map {
             makeTintWindow(color: color, screen: $0, initialAlpha: 1.0)
         }
+        tintedStatus = currentStatus
     }
 
     private func makeTintWindow(color: NSColor, screen: NSScreen, initialAlpha: CGFloat) -> NSWindow {
@@ -365,6 +375,7 @@ public class StatusManager: ObservableObject {
     }
 
     private func removeTintWindows() {
+        tintedStatus = nil
         for window in tintWindows {
             window.orderOut(nil)
         }

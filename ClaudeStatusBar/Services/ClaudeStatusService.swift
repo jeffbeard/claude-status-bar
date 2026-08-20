@@ -1,6 +1,11 @@
 import Foundation
 
-public actor ClaudeStatusService {
+/// Abstraction over the status feed so callers can be tested without network access.
+public protocol StatusFetching: Sendable {
+    func fetchSummary() async throws -> SummaryResponse
+}
+
+public actor ClaudeStatusService: StatusFetching {
     public static let shared = ClaudeStatusService()
 
     private let summaryURL = URL(string: "https://status.claude.com/api/v2/summary.json")!
