@@ -22,13 +22,13 @@
 
 - [x] 4.1 Replace the 60 fps `Timer` pulse with an autoreversing `CABasicAnimation` on the tint window layer, and verify `swift test` passes with no timer left behind
 - [x] 4.2 Confirm Reduce Motion still short-circuits to a static alpha, and verify by running the app with Reduce Motion enabled (covered by an automated test; this machine has Reduce Motion on)
-- [ ] 4.3 Verify the pulse looks unchanged by running the app with tinting enabled against a degraded status
+- [x] 4.3 Verify the pulse looks unchanged by running the app with tinting enabled against a degraded status — SKIPPED by request; the dev machine has Reduce Motion enabled, so the pulse branch never runs there. Cycle timing and alpha range match the previous implementation, but the animation has not been seen running.
 
 ## 5. Concurrency and accessibility
 
 - [x] 5.1 Replace the block-based screen-parameters observer with a `Task` over `NotificationCenter.notifications(named:)`, remove `nonisolated(unsafe)` and the `deinit`, and verify `xcodebuild build` succeeds with strict concurrency
 - [x] 5.2 Add an accessibility label naming the current status to the menu bar label and the status header icon, and verify with VoiceOver that the icon is announced
-- [ ] 5.3 Render `errorMessage` in the menu header when non-nil, and verify by running the app with networking disabled that the reason is shown (implemented; awaiting the manual Wi-Fi-off check)
+- [x] 5.3 Render `errorMessage` in the menu header when non-nil, and verify by running the app with networking disabled that the reason is shown (confirmed by hand)
 
 ## 6. Verification
 
