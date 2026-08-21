@@ -39,6 +39,14 @@ cleanup() {
         fi
     fi
 }
+# Without this, Ctrl-C during a foreground command (e.g. xcodebuild) kills
+# bash immediately on the signal, before the command finishes and $? is set
+# from it -- so the EXIT trap below sees a stale status of 0 and treats the
+# run as successful (deleting the build log instead of preserving it).
+# Installing an INT handler makes bash defer the signal until the current
+# command returns, then run `exit 130`, which enters the EXIT trap with the
+# correct nonzero status.
+trap 'exit 130' INT
 trap cleanup EXIT
 
 log() { printf '==> %s\n' "$*"; }
@@ -140,8 +148,52 @@ create_dmg() {
     printf '%s' "$tmp_dmg"
 }
 
+# Mount the image and confirm it actually contains a launchable app.
+# MOUNT_POINT is global so the EXIT trap can detach it if this fails midway.
+verify_dmg() {
+    local tmp_dmg="$1"
+
+    MOUNT_POINT="$WORK_DIR/mnt"
+    mkdir -p "$MOUNT_POINT"
+
+    # No -quiet: like hdiutil create, -quiet on attach/detach suppresses
+    # their stderr error output too (confirmed empirically), leaving die's
+    # message with nothing actionable behind it. Only stdout (the noisy
+    # device/mountpoint table on success) is thrown away here.
+    hdiutil attach "$tmp_dmg" \
+        -mountpoint "$MOUNT_POINT" \
+        -readonly \
+        -nobrowse \
+        >/dev/null \
+        || die "could not mount disk image: $tmp_dmg"
+
+    [[ -d "$MOUNT_POINT/$APP_NAME.app" ]] \
+        || die "disk image does not contain $APP_NAME.app"
+    [[ -L "$MOUNT_POINT/Applications" ]] \
+        || die "disk image is missing the /Applications symlink"
+
+    codesign --verify --deep --strict "$MOUNT_POINT/$APP_NAME.app" \
+        || die "signature verification failed for $APP_NAME.app"
+
+    hdiutil detach "$MOUNT_POINT" >/dev/null || die "could not detach $MOUNT_POINT"
+    MOUNT_POINT=""
+}
+
+# Move the verified image into dist/ under its final name.
+publish_dmg() {
+    local tmp_dmg="$1" version="$2"
+    local final="$DIST_DIR/$APP_NAME-$version.dmg"
+
+    mkdir -p "$DIST_DIR" || die "failed to create dist directory: $DIST_DIR"
+    mv "$tmp_dmg" "$final" || die "failed to move disk image into dist/: $final"
+
+    [[ -f "$final" ]] || die "expected published disk image not produced: $final"
+
+    printf '%s' "$final"
+}
+
 main() {
-    local version app_path stage tmp_dmg
+    local version app_path stage tmp_dmg final size
     version="$(resolve_version)"
     log "version: $version"
 
@@ -157,7 +209,19 @@ main() {
 
     log "creating disk image"
     tmp_dmg="$(create_dmg "$stage" "$version")"
-    log "created: $tmp_dmg"
+
+    log "verifying disk image"
+    verify_dmg "$tmp_dmg"
+
+    final="$(publish_dmg "$tmp_dmg" "$version")"
+    size="$(du -h "$final" | cut -f1 | tr -d ' ')"
+
+    printf '\n'
+    log "packaged $APP_NAME $version"
+    log "$final ($size)"
+    log "unsigned build: on first launch, right-click the app in /Applications"
+    log "and choose Open, or run:"
+    log "  xattr -dr com.apple.quarantine /Applications/$APP_NAME.app"
 }
 
 main "$@"
