@@ -60,10 +60,13 @@ xcodebuild \
   -project ClaudeStatusBar.xcodeproj \
   -scheme ClaudeStatusBar \
   -configuration Release \
+  -destination 'generic/platform=macOS' \
   -derivedDataPath "$BUILD_DIR" \
   CODE_SIGN_IDENTITY="-" \
   CODE_SIGN_STYLE=Manual \
-  DEVELOPMENT_TEAM=""
+  DEVELOPMENT_TEAM="" \
+  ARCHS="arm64 x86_64" \
+  ONLY_ACTIVE_ARCH=NO
 ```
 
 `-scheme` is used rather than `-target`. `-target` was the original intent, on the theory
@@ -77,6 +80,17 @@ And the scheme needs no checked-in file: the project contains no `.xcscheme` and
 `xcuserdata/`, yet `xcodebuild -project ... -list` still reports a `ClaudeStatusBar` scheme.
 Xcode synthesizes the single-target scheme on the fly, so `-scheme` resolves identically in
 a fresh clone.
+
+The destination and architecture settings make the build universal. They are not
+redundant with the project: the Release configuration already resolves to
+`ARCHS = arm64 x86_64` with `ONLY_ACTIVE_ARCH = NO`, but when `-scheme` is used with no
+`-destination`, `xcodebuild` selects the local Mac as the destination and builds only that
+machine's architecture. The first image shipped from this pipeline was built on an Intel
+Mac and was `x86_64`-only as a result — it would have run on Apple Silicon under Rosetta 2,
+but not natively, and not at all without Rosetta installed.
+`generic/platform=macOS` asks for an architecture-neutral destination; the two build
+settings state the intent explicitly so a later project-level change cannot quietly narrow
+the image again.
 
 `CODE_SIGN_IDENTITY="-"` requests ad-hoc signing. This matters: the app declares the
 `com.apple.security.app-sandbox` entitlement, and entitlements are only honored on a signed
@@ -108,7 +122,10 @@ Verification runs against the temporary image before it is moved into `dist/`:
 1. `hdiutil attach` the image read-only, with no Finder window.
 2. Assert `ClaudeStatusBar.app` exists at the mount root.
 3. Run `codesign --verify --deep --strict` against the mounted app.
-4. `hdiutil detach` the volume (in the trap as well, so a failure mid-verify does not leave
+4. Assert `lipo -archs` on the app's executable reports both `arm64` and `x86_64`. Every
+   other check here passes on an image that silently narrowed to the build machine's
+   architecture, so this is the only gate that catches it.
+5. `hdiutil detach` the volume (in the trap as well, so a failure mid-verify does not leave
    a stale mount).
 
 Any failure exits nonzero and leaves `dist/` untouched, so a broken image is never
@@ -120,10 +137,12 @@ Print the final disk image path, its size, and the packaged version.
 
 ## Implementation Notes
 
-Five refinements emerged while building this, each driven by a review finding and verified
+Six refinements emerged while building this, each driven by a review finding and verified
 empirically. They are recorded here because the reasoning is not obvious from the code:
 
 - **`-scheme`, not `-target`** — see the Build section above.
+- **`-scheme` without `-destination` builds one architecture** — see the Build section
+  above. This shipped as a defect in the first image and was fixed afterwards.
 - **`-quiet` is never used on `hdiutil`.** On `create`, `attach`, and `detach` alike, `-quiet`
   suppresses the command's *error* output as well as its progress noise, so a failure yields
   an exit code and nothing else. Each call instead redirects only stdout to `/dev/null`,
