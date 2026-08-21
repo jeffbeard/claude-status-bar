@@ -21,6 +21,7 @@ A native macOS menu bar app that monitors Anthropic Claude's service status in r
 ## Requirements
 
 - macOS 13.0 (Ventura) or later
+- Apple Silicon or Intel — the packaged app is a universal binary
 - Xcode 15.0+ or Swift 6.0 toolchain
 
 ## Quick Start
@@ -61,6 +62,11 @@ Build an installable disk image:
 
 This produces `dist/ClaudeStatusBar-<version>.dmg`. Open it and drag
 **ClaudeStatusBar** onto the **Applications** shortcut.
+
+The image contains a universal (`arm64` + `x86_64`) binary regardless of which
+Mac builds it, so it runs natively on Apple Silicon and Intel without Rosetta.
+`scripts/package.sh` refuses to publish an image whose app is missing either
+architecture.
 
 ### First launch
 

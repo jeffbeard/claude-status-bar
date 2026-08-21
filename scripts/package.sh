@@ -83,6 +83,16 @@ resolve_version() {
 # CODE_SIGN_IDENTITY="-" requests ad-hoc signing. This is required, not
 # cosmetic: the app declares com.apple.security.app-sandbox, and entitlements
 # are only honored on a signed binary.
+#
+# The image must run natively on both Apple Silicon and Intel, so the build is
+# pinned to a universal slice pair. The three settings below are not redundant
+# with the project: the Release configuration already resolves to
+# ARCHS = "arm64 x86_64" with ONLY_ACTIVE_ARCH = NO, but with -scheme and no
+# -destination, xcodebuild picks the local Mac as the destination and builds
+# only that machine's arch -- which is how the first shipped image ended up
+# x86_64-only when built on an Intel Mac. "generic/platform=macOS" asks for an
+# architecture-neutral destination; ARCHS/ONLY_ACTIVE_ARCH state the intent
+# explicitly so a project-level change cannot silently narrow the image.
 build_app() {
     local derived_data="$WORK_DIR/DerivedData"
     # BUILD_LOG is set by main() before this function is called, not here:
@@ -99,10 +109,13 @@ build_app() {
         -project "$PROJECT" \
         -scheme "$APP_NAME" \
         -configuration Release \
+        -destination 'generic/platform=macOS' \
         -derivedDataPath "$derived_data" \
         CODE_SIGN_IDENTITY="-" \
         CODE_SIGN_STYLE=Manual \
         DEVELOPMENT_TEAM="" \
+        ARCHS="arm64 x86_64" \
+        ONLY_ACTIVE_ARCH=NO \
         build \
         >"$BUILD_LOG" 2>&1 \
         || { cat "$BUILD_LOG" >&2; die "xcodebuild failed"; }
@@ -174,6 +187,20 @@ verify_dmg() {
 
     codesign --verify --deep --strict "$MOUNT_POINT/$APP_NAME.app" \
         || die "signature verification failed for $APP_NAME.app"
+
+    # Confirm the image is universal. Without this, a build that silently
+    # narrows to the build machine's architecture still passes every other
+    # check here and ships an image half the audience cannot run natively.
+    local binary="$MOUNT_POINT/$APP_NAME.app/Contents/MacOS/$APP_NAME"
+    local archs
+    archs="$(lipo -archs "$binary")" || die "could not read architectures from $binary"
+    local arch
+    for arch in arm64 x86_64; do
+        case " $archs " in
+            *" $arch "*) ;;
+            *) die "$APP_NAME.app is not universal: missing $arch (has: $archs)" ;;
+        esac
+    done
 
     hdiutil detach "$MOUNT_POINT" >/dev/null || die "could not detach $MOUNT_POINT"
     MOUNT_POINT=""
