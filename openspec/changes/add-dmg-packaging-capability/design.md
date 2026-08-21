@@ -195,8 +195,16 @@ paid Apple Developer account.
 
 ## OpenSpec
 
-No spec delta. This change adds build tooling and does not alter any application behavior
-described by the `status-monitoring` capability.
+This design was originally written with **no spec delta**, on the reasoning that it adds
+build tooling and does not alter any application behavior described by the
+`status-monitoring` capability. That reasoning was wrong, and the project has since ruled it
+out: see "Everything gets a change" in `AGENTS.md`.
+
+The requirements this pipeline guarantees are specified in
+`specs/packaging/spec.md` alongside this document, added retroactively by the
+`add-dmg-packaging-capability` change. The cost of the original omission was concrete — the
+first published image was `x86_64`-only, and nothing forbade it because nothing required
+otherwise.
 
 ## Follow-Ups (Out of Scope)
 
