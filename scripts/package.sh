@@ -19,13 +19,24 @@ DIST_DIR="$REPO_ROOT/dist"
 
 WORK_DIR=""
 MOUNT_POINT=""
+BUILD_LOG=""
 
 cleanup() {
+    local status=$?
+
     if [[ -n "$MOUNT_POINT" && -d "$MOUNT_POINT" ]]; then
         hdiutil detach "$MOUNT_POINT" -quiet -force 2>/dev/null || true
     fi
     if [[ -n "$WORK_DIR" && -d "$WORK_DIR" ]]; then
         rm -rf "$WORK_DIR" || true
+    fi
+
+    if [[ -n "$BUILD_LOG" && -f "$BUILD_LOG" ]]; then
+        if [[ "$status" -eq 0 ]]; then
+            rm -f "$BUILD_LOG" || true
+        else
+            printf 'build log kept at %s\n' "$BUILD_LOG" >&2
+        fi
     fi
 }
 trap cleanup EXIT
@@ -66,11 +77,15 @@ resolve_version() {
 # are only honored on a signed binary.
 build_app() {
     local derived_data="$WORK_DIR/DerivedData"
-    # Kept outside WORK_DIR so it survives the cleanup trap on failure: the
-    # user needs the raw log after this script exits, not just what scrolled
-    # past in the terminal.
-    local build_log
-    build_log="$(mktemp -t claude-status-bar-xcodebuild)"
+    # BUILD_LOG is set by main() before this function is called, not here:
+    # this function runs inside a command-substitution subshell
+    # ("$(build_app)"), so an assignment to the global made in here would
+    # only ever land in that subshell's copy and vanish when it exits --
+    # invisible to cleanup(), which runs in the parent shell. Kept outside
+    # WORK_DIR so it survives on failure; tracked in the global (like
+    # WORK_DIR and MOUNT_POINT) so cleanup() can report and preserve it on
+    # any exit path: a die from this function, a postcondition failure
+    # below, or a signal (e.g. Ctrl-C) that fires the EXIT trap mid-build.
 
     xcodebuild \
         -project "$PROJECT" \
@@ -81,10 +96,8 @@ build_app() {
         CODE_SIGN_STYLE=Manual \
         DEVELOPMENT_TEAM="" \
         build \
-        >"$build_log" 2>&1 \
-        || { cat "$build_log" >&2; die "xcodebuild failed; build log kept at $build_log"; }
-
-    rm -f "$build_log"
+        >"$BUILD_LOG" 2>&1 \
+        || { cat "$BUILD_LOG" >&2; die "xcodebuild failed"; }
 
     local app_path="$derived_data/Build/Products/Release/$APP_NAME.app"
     [[ -d "$app_path" ]] || die "expected app not produced: $app_path"
@@ -98,9 +111,11 @@ stage_contents() {
     local app_path="$1"
     local stage="$WORK_DIR/stage"
 
-    mkdir -p "$stage"
-    cp -R "$app_path" "$stage/"
-    ln -s /Applications "$stage/Applications"
+    mkdir -p "$stage" || die "failed to create stage directory: $stage"
+    cp -R "$app_path" "$stage/" || die "failed to copy app into stage: $app_path"
+    ln -s /Applications "$stage/Applications" || die "failed to create Applications symlink in stage"
+
+    [[ -d "$stage/$APP_NAME.app" ]] || die "expected staged app not produced: $stage/$APP_NAME.app"
 
     printf '%s' "$stage"
 }
@@ -116,8 +131,8 @@ create_dmg() {
         -srcfolder "$stage" \
         -ov \
         -format UDZO \
-        -quiet \
         "$tmp_dmg" \
+        >/dev/null \
         || die "hdiutil create failed"
 
     [[ -f "$tmp_dmg" ]] || die "expected disk image not produced: $tmp_dmg"
@@ -131,9 +146,11 @@ main() {
     log "version: $version"
 
     WORK_DIR="$(mktemp -d)"
+    BUILD_LOG="$(mktemp -t claude-status-bar-xcodebuild)"
 
     log "building $APP_NAME.app (Release, ad-hoc signed)"
     app_path="$(build_app)"
+    log "built: $app_path"
 
     log "staging disk image contents"
     stage="$(stage_contents "$app_path")"
