@@ -8,8 +8,14 @@
 
 **Tech Stack:** Bash, `xcodebuild`, `hdiutil`, `codesign`. No new dependencies.
 
-**Design:** `docs/superpowers/specs/2026-08-20-local-dmg-packaging-design.md`
+**Design:** `design.md`, alongside this file.
 **Issue:** #9
+
+> **Relocated.** This plan and its design doc originally lived under `docs/superpowers/`
+> and were moved into this change directory; `openspec/changes/<change-id>/` is now the
+> single home for change documentation. Task steps below still name the original
+> `docs/superpowers/...` paths — they record what was actually run at the time and are left
+> as written.
 
 **A note on testing:** this project has no Bash test framework and the design explicitly
 declines to add one for a single script. Instead, every task ends by *running the script*
