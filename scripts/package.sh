@@ -66,6 +66,11 @@ resolve_version() {
 # are only honored on a signed binary.
 build_app() {
     local derived_data="$WORK_DIR/DerivedData"
+    # Kept outside WORK_DIR so it survives the cleanup trap on failure: the
+    # user needs the raw log after this script exits, not just what scrolled
+    # past in the terminal.
+    local build_log
+    build_log="$(mktemp -t claude-status-bar-xcodebuild)"
 
     xcodebuild \
         -project "$PROJECT" \
@@ -76,8 +81,10 @@ build_app() {
         CODE_SIGN_STYLE=Manual \
         DEVELOPMENT_TEAM="" \
         build \
-        >"$WORK_DIR/xcodebuild.log" 2>&1 \
-        || { cat "$WORK_DIR/xcodebuild.log" >&2; die "xcodebuild failed"; }
+        >"$build_log" 2>&1 \
+        || { cat "$build_log" >&2; die "xcodebuild failed; build log kept at $build_log"; }
+
+    rm -f "$build_log"
 
     local app_path="$derived_data/Build/Products/Release/$APP_NAME.app"
     [[ -d "$app_path" ]] || die "expected app not produced: $app_path"
@@ -85,8 +92,41 @@ build_app() {
     printf '%s' "$app_path"
 }
 
+# Lay out the conventional drag-to-install disk image contents:
+# the app beside a symlink to /Applications.
+stage_contents() {
+    local app_path="$1"
+    local stage="$WORK_DIR/stage"
+
+    mkdir -p "$stage"
+    cp -R "$app_path" "$stage/"
+    ln -s /Applications "$stage/Applications"
+
+    printf '%s' "$stage"
+}
+
+# Create a compressed, read-only disk image from the staged contents.
+# Written to the work directory; it is only published to dist/ once verified.
+create_dmg() {
+    local stage="$1" version="$2"
+    local tmp_dmg="$WORK_DIR/$APP_NAME-$version.dmg"
+
+    hdiutil create \
+        -volname "$VOLUME_NAME" \
+        -srcfolder "$stage" \
+        -ov \
+        -format UDZO \
+        -quiet \
+        "$tmp_dmg" \
+        || die "hdiutil create failed"
+
+    [[ -f "$tmp_dmg" ]] || die "expected disk image not produced: $tmp_dmg"
+
+    printf '%s' "$tmp_dmg"
+}
+
 main() {
-    local version app_path
+    local version app_path stage tmp_dmg
     version="$(resolve_version)"
     log "version: $version"
 
@@ -94,7 +134,13 @@ main() {
 
     log "building $APP_NAME.app (Release, ad-hoc signed)"
     app_path="$(build_app)"
-    log "built: $app_path"
+
+    log "staging disk image contents"
+    stage="$(stage_contents "$app_path")"
+
+    log "creating disk image"
+    tmp_dmg="$(create_dmg "$stage" "$version")"
+    log "created: $tmp_dmg"
 }
 
 main "$@"
