@@ -154,7 +154,7 @@ verify_dmg() {
     local tmp_dmg="$1"
 
     MOUNT_POINT="$WORK_DIR/mnt"
-    mkdir -p "$MOUNT_POINT"
+    mkdir -p "$MOUNT_POINT" || die "could not create mount point: $MOUNT_POINT"
 
     # No -quiet: like hdiutil create, -quiet on attach/detach suppresses
     # their stderr error output too (confirmed empirically), leaving die's

@@ -619,3 +619,30 @@ Design: \`docs/superpowers/specs/2026-08-20-local-dmg-packaging-design.md\`
 - [ ] **Step 3: Stop**
 
 A human reviews and merges the PR. Do not merge it.
+
+---
+
+## Deviations During Execution
+
+The tasks above were executed as written except for the following, each raised by review and
+folded into the task that followed. The design doc's Implementation Notes section carries the
+reasoning; this list is the audit trail.
+
+- **Task 2** — `-target` became `-scheme`. Xcode 26.5 refuses `-derivedDataPath` without
+  `-scheme`, and the premise that the scheme would be missing in a fresh clone was wrong:
+  Xcode synthesizes it without persisting a file. Task 2's code block above was corrected in
+  place.
+- **Task 2 fixes, applied in Task 3** — quoted the ambiguous-version `die` message; guarded
+  the trap's `rm -rf` with `|| true`.
+- **Task 3 fixes, applied in Task 3's follow-up commit** — moved the `xcodebuild` log outside
+  `WORK_DIR` into a trap-tracked `BUILD_LOG` global (assigned in `main()`, since `build_app`
+  runs in a subshell); dropped `-quiet` from `hdiutil create` so its error text survives;
+  gave `stage_contents()` the `|| die` guards and postcondition the other stages have;
+  restored the `built:` log line.
+- **Task 4** — added `trap 'exit 130' INT` to close the Ctrl-C case where `cleanup()` saw a
+  stale success status and deleted the build log; dropped `-quiet` from `hdiutil attach` and
+  `detach` for the same reason as `create`; added `|| die` guards and a postcondition to
+  `publish_dmg()`, and a guard on `verify_dmg()`'s `mkdir -p`.
+- **Task 5** — also corrected two pre-existing README defects found while planning: the
+  documented `-scheme ClaudeStatusBarTests` test command (that scheme does not exist) and a
+  hardcoded `cd ~/projects/claude-status-bar` path.

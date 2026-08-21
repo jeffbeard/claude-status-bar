@@ -94,7 +94,7 @@ hdiutil create \
   -volname "Claude Status Bar" \
   -srcfolder "$STAGE_DIR" \
   -ov -format UDZO \
-  "$TMP_DMG"
+  "$TMP_DMG" >/dev/null
 ```
 
 `UDZO` is compressed and read-only. The image is written to a temporary path and only moved
@@ -117,6 +117,30 @@ mistaken for a good one.
 ### 6. Report
 
 Print the final disk image path, its size, and the packaged version.
+
+## Implementation Notes
+
+Five refinements emerged while building this, each driven by a review finding and verified
+empirically. They are recorded here because the reasoning is not obvious from the code:
+
+- **`-scheme`, not `-target`** — see the Build section above.
+- **`-quiet` is never used on `hdiutil`.** On `create`, `attach`, and `detach` alike, `-quiet`
+  suppresses the command's *error* output as well as its progress noise, so a failure yields
+  an exit code and nothing else. Each call instead redirects only stdout to `/dev/null`,
+  leaving stderr intact so the script's `die` message has an actual cause behind it.
+- **The `xcodebuild` log lives outside the work directory.** It is created with `mktemp`,
+  tracked in a `BUILD_LOG` global, and handled by `cleanup()`: deleted on success, kept on
+  failure with its surviving path printed. Writing it inside `WORK_DIR` meant the cleanup
+  trap destroyed the log at exactly the moment the user needed it.
+- **`BUILD_LOG` is assigned in `main()`, not in `build_app()`.** `build_app` is invoked as
+  `app_path="$(build_app)"` — a command-substitution subshell — so a global assigned inside
+  it never reaches the parent shell's trap. `MOUNT_POINT` has no such problem because
+  `verify_dmg` is called directly.
+- **`trap 'exit 130' INT` is installed before the `EXIT` trap.** Without an `INT` trap, bash
+  dies on Ctrl-C without finishing the `xcodebuild ... || { ...; die; }` command, so
+  `cleanup()` runs with a stale `$?` of 0 and deletes the build log as though the run had
+  succeeded. With it, bash defers the signal, exits 130, and the `EXIT` trap sees a true
+  failure status.
 
 ## Testing
 
