@@ -152,6 +152,10 @@ Manual acceptance, performed once: mount the produced image, drag the app to
 `/Applications`, clear quarantine, launch it, and confirm the menu bar item appears and
 fetches status.
 
+**Result (2026-08-20):** passed. The image was built, mounted, and the app dragged to
+`/Applications` and launched. It runs from `/Applications` as a normal install — confirming
+the ad-hoc signature and the sandbox entitlements survive packaging.
+
 ## Repository Changes
 
 - `scripts/package.sh` — new, executable.
