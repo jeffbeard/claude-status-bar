@@ -67,6 +67,22 @@ opposite reasoning was applied twice — to `scripts/package.sh` and to the univ
 fix — and both shipped undocumented. The second one shipped a real defect: an `x86_64`-only
 disk image, which no requirement forbade because no requirement existed.
 
+A change that genuinely touches no capability — repository layout, assistant configuration,
+prose-only documentation — still gets a change directory, with `skip_specs: true` in its
+`.openspec.yaml`. That is the supported way to say "no delta," and `--strict` accepts it. It
+is not an escape hatch for tooling that guarantees user-visible behavior: producing an
+installable disk image is a capability, so it gets requirements.
+
+### Archiving
+
+Archives live in `openspec/changes/archive/<YYYY-MM-DD>-<change-id>/`. Archive with
+`openspec archive <change-id>` — add `--skip-specs` for a change that has no delta — and
+never by moving directories by hand. Hand-moving is how this project ended up with archived
+changes in two directories, which had to be consolidated later.
+
+After archiving a brand-new capability, replace the `TBD - created by archiving` placeholder
+the command writes into the promoted spec's `## Purpose`.
+
 ### `openspec/` is the only home for change documentation
 
 The superpowers skills (`brainstorming`, `writing-plans`) default to writing into
@@ -86,7 +102,19 @@ into the change directory instead:
 
 The one thing only OpenSpec provides is the spec delta in
 `openspec/changes/<change-id>/specs/<capability>/spec.md`, which is promoted into
-`openspec/specs/` on archive and validated by `--strict`. Write it in every change.
+`openspec/specs/` on archive and validated by `--strict`. Write it in every change that
+touches a capability.
+
+### Assistant Integration Files
+
+`openspec update` writes the same OpenSpec skills and commands once per assistant: `.agent/`
+(Antigravity), `.claude/` (Claude Code), `.gemini/` (Gemini CLI), and `.github/skills` plus
+`.github/prompts` (Copilot). `.agent/` and `.github/` are byte-identical to each other, as
+are `.claude/` and `.gemini/`.
+
+Only `.agent/` and `.claude/` are tracked — the two assistants actually used here. The other
+two are gitignored and regenerated on demand by rerunning `openspec update`. `.github/`
+itself is not ignored, so workflows can live there.
 
 ---
 
