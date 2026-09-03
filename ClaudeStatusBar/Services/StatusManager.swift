@@ -325,6 +325,10 @@ public class StatusManager: ObservableObject {
 
     // MARK: - Actions
 
+    public func openDashboardWindow() {
+        DashboardWindowController.shared.show(statusManager: self)
+    }
+
     public func openClaudeStatus() {
         if let url = URL(string: "https://status.claude.com") {
             NSWorkspace.shared.open(url)

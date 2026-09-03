@@ -158,6 +158,15 @@ public struct StatusMenuView: View {
             }
             .buttonStyle(.borderless)
 
+            Button(action: statusManager.openDashboardWindow) {
+                HStack {
+                    Image(systemName: "chart.bar.xaxis")
+                    Text("Open Reliability Dashboard")
+                }
+                .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderless)
+
             Divider()
                 .padding(.vertical, 4)
 
