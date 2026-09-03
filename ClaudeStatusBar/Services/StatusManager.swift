@@ -43,8 +43,10 @@ public class StatusManager: ObservableObject {
     private var tintPulseTimer: Timer?
     private var tintPulseStartTime: Date?
     nonisolated(unsafe) private var screenParametersObserver: (any NSObjectProtocol)?
+    public let sqliteStore: SQLiteStore
 
-    public init() {
+    public init(sqliteStore: SQLiteStore? = nil) {
+        self.sqliteStore = sqliteStore ?? SQLiteStore.shared
         let isTesting = NSClassFromString("XCTestCase") != nil
         if !isTesting {
             launchAtLogin = SMAppService.mainApp.status == .enabled
@@ -112,6 +114,13 @@ public class StatusManager: ObservableObject {
             let statusDidChange = lastKnownStatus != .unknown && lastKnownStatus != newStatus
             lastKnownStatus = newStatus
 
+            // Persist snapshot to SQLite
+            let store = sqliteStore
+            Task {
+                try? await store.recordSnapshot(summary: summary)
+                _ = try? await store.purgeOldSnapshots(olderThanDays: 90)
+            }
+
             if statusDidChange {
                 sendStatusChangeNotification(description: newDescription)
                 triggerAnimation(to: newStatus, description: newDescription)
@@ -127,6 +136,10 @@ public class StatusManager: ObservableObject {
             currentStatus = .unknown
             statusDescription = "Failed to fetch status"
         }
+    }
+
+    public func recordSnapshotForTesting(summary: SummaryResponse) async {
+        try? await sqliteStore.recordSnapshot(summary: summary)
     }
 
     // MARK: - Computed Properties

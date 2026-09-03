@@ -37,4 +37,27 @@ final class StatusManagerTests: XCTestCase {
         XCTAssertFalse(hiddenHealthyComp.shouldDisplay)
         XCTAssertTrue(hiddenDegradedComp.shouldDisplay)
     }
+
+    func testSnapshotRecordingIntegration() async throws {
+        let store = try SQLiteStore(dbPath: ":memory:")
+        let manager = StatusManager(sqliteStore: store)
+
+        let json = """
+        {
+            "status": {"indicator": "none", "description": "All Systems Operational"},
+            "components": [
+                {"id": "api", "name": "Claude API", "status": "operational", "position": 1}
+            ],
+            "incidents": []
+        }
+        """.data(using: .utf8)!
+
+        let summary = try JSONDecoder().decode(SummaryResponse.self, from: json)
+        await manager.recordSnapshotForTesting(summary: summary)
+
+        let (availability, total, operational) = try await store.fetchAvailability(days: 7)
+        XCTAssertEqual(total, 1)
+        XCTAssertEqual(operational, 1)
+        XCTAssertEqual(availability, 100.0)
+    }
 }
