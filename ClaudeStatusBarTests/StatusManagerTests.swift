@@ -60,4 +60,18 @@ final class StatusManagerTests: XCTestCase {
         XCTAssertEqual(operational, 1)
         XCTAssertEqual(availability, 100.0)
     }
+
+    func testOfflineStateHandling() {
+        let manager = StatusManager()
+
+        let healthyComp = Component(id: "1", name: "Claude API", status: .operational, description: nil, position: 1, updatedAt: nil, onlyShowIfDegraded: false)
+        manager.components = [healthyComp]
+
+        let error = NSError(domain: NSURLErrorDomain, code: NSURLErrorNotConnectedToInternet)
+        manager.handleFetchError(error)
+
+        XCTAssertEqual(manager.currentStatus, .unknown)
+        XCTAssertEqual(manager.statusDescription, "No Internet Connection")
+        XCTAssertEqual(manager.components.first?.status, .unknown)
+    }
 }

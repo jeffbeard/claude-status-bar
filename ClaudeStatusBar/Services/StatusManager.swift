@@ -132,10 +132,26 @@ public class StatusManager: ObservableObject {
             }
 
         } catch {
-            errorMessage = error.localizedDescription
-            currentStatus = .unknown
-            statusDescription = "Failed to fetch status"
+            handleFetchError(error)
         }
+    }
+
+    public func handleFetchError(_ error: Error) {
+        errorMessage = error.localizedDescription
+        currentStatus = .unknown
+        statusDescription = "No Internet Connection"
+        components = components.map { comp in
+            Component(
+                id: comp.id,
+                name: comp.name,
+                status: .unknown,
+                description: "No Internet",
+                position: comp.position,
+                updatedAt: comp.updatedAt,
+                onlyShowIfDegraded: comp.onlyShowIfDegraded
+            )
+        }
+        updateMenuBarTint()
     }
 
     public func recordSnapshotForTesting(summary: SummaryResponse) async {
