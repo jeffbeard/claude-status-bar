@@ -137,8 +137,12 @@ public struct Incident: Decodable, Identifiable, Sendable {
         incidentUpdates = container.decodeLossyArray(IncidentUpdate.self, forKey: .incidentUpdates)
     }
 
+    /// The most recently created update. The API does not guarantee array order, and an
+    /// update with no timestamp is treated as the oldest so it never displaces a dated one.
     public var latestUpdate: IncidentUpdate? {
-        return incidentUpdates.first
+        return incidentUpdates.max {
+            ($0.createdAt ?? .distantPast) < ($1.createdAt ?? .distantPast)
+        }
     }
 }
 

@@ -8,6 +8,7 @@ private struct MenuBarLabel: View {
     var body: some View {
         Image(nsImage: claudeStatusIcon(status: statusManager.currentStatus))
             .opacity(pulseOpacity)
+            .accessibilityLabel(Text("Claude status: \(statusManager.statusDescription)"))
             .onChange(of: statusManager.animationPhase) { phase in
                 switch phase {
                 case .fadingOut:

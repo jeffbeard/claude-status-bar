@@ -21,6 +21,7 @@ A native macOS menu bar app that monitors Anthropic Claude's service status in r
 ## Requirements
 
 - macOS 13.0 (Ventura) or later
+- Apple Silicon or Intel — the packaged app is a universal binary
 - Xcode 15.0+ or Swift 6.0 toolchain
 
 ## Quick Start
@@ -34,14 +35,14 @@ swift test
 Or using Xcode:
 
 ```bash
-xcodebuild test -project ClaudeStatusBar.xcodeproj -scheme ClaudeStatusBarTests
+xcodebuild test -project ClaudeStatusBar.xcodeproj -scheme ClaudeStatusBar -destination 'platform=macOS'
 ```
 
 ### Building & Running
 
 1. Clone or open the directory:
    ```bash
-   cd ~/projects/claude-status-bar
+   cd claude-status-bar
    ```
 
 2. Open in Xcode:
@@ -50,6 +51,35 @@ xcodebuild test -project ClaudeStatusBar.xcodeproj -scheme ClaudeStatusBarTests
    ```
 
 3. Build and run (⌘R)
+
+## Install
+
+Build an installable disk image:
+
+```bash
+./scripts/package.sh
+```
+
+This produces `dist/ClaudeStatusBar-<version>.dmg`. Open it and drag
+**ClaudeStatusBar** onto the **Applications** shortcut.
+
+The image contains a universal (`arm64` + `x86_64`) binary regardless of which
+Mac builds it, so it runs natively on Apple Silicon and Intel without Rosetta.
+`scripts/package.sh` refuses to publish an image whose app is missing either
+architecture.
+
+### First launch
+
+The app is ad-hoc signed and **not** notarized — this project does not have a paid Apple
+Developer account — so macOS blocks it the first time you open it. Either:
+
+- Right-click **ClaudeStatusBar** in `/Applications`, choose **Open**, and confirm; or
+- Clear the quarantine flag:
+  ```bash
+  xattr -dr com.apple.quarantine /Applications/ClaudeStatusBar.app
+  ```
+
+You only need to do this once. The app runs in the menu bar with no Dock icon.
 
 ## Architecture & OpenSpec
 

@@ -7,7 +7,7 @@ final class DashboardViewTests: XCTestCase {
 
     func testDashboardViewInitialization() throws {
         let store = try SQLiteStore(dbPath: ":memory:")
-        let manager = StatusManager(sqliteStore: store)
+        let manager = StatusManager(sqliteStore: store, autoStart: false)
         let view = DashboardView(statusManager: manager)
 
         XCTAssertNotNil(view.body)
@@ -15,7 +15,7 @@ final class DashboardViewTests: XCTestCase {
 
     func testDashboardWindowControllerShow() throws {
         let store = try SQLiteStore(dbPath: ":memory:")
-        let manager = StatusManager(sqliteStore: store)
+        let manager = StatusManager(sqliteStore: store, autoStart: false)
 
         // Verify window controller presents window cleanly without crash
         DashboardWindowController.shared.show(statusManager: manager)

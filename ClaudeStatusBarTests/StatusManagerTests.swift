@@ -5,7 +5,7 @@ import XCTest
 final class StatusManagerTests: XCTestCase {
 
     func testInitialState() {
-        let manager = StatusManager()
+        let manager = StatusManager(autoStart: false)
         XCTAssertEqual(manager.currentStatus, .unknown)
         XCTAssertEqual(manager.statusDescription, "Loading...")
         XCTAssertTrue(manager.components.isEmpty)
@@ -14,7 +14,7 @@ final class StatusManagerTests: XCTestCase {
     }
 
     func testAffectedComponentsFiltering() {
-        let manager = StatusManager()
+        let manager = StatusManager(autoStart: false)
 
         let healthy = Component(id: "1", name: "claude.ai", status: .operational, description: nil, position: 1, updatedAt: nil, onlyShowIfDegraded: false)
         let degraded = Component(id: "2", name: "Claude API", status: .degradedPerformance, description: nil, position: 2, updatedAt: nil, onlyShowIfDegraded: false)
@@ -40,7 +40,7 @@ final class StatusManagerTests: XCTestCase {
 
     func testSnapshotRecordingIntegration() async throws {
         let store = try SQLiteStore(dbPath: ":memory:")
-        let manager = StatusManager(sqliteStore: store)
+        let manager = StatusManager(sqliteStore: store, autoStart: false)
 
         let json = """
         {
@@ -62,7 +62,7 @@ final class StatusManagerTests: XCTestCase {
     }
 
     func testOfflineStateHandling() {
-        let manager = StatusManager()
+        let manager = StatusManager(autoStart: false)
 
         let healthyComp = Component(id: "1", name: "Claude API", status: .operational, description: nil, position: 1, updatedAt: nil, onlyShowIfDegraded: false)
         manager.components = [healthyComp]

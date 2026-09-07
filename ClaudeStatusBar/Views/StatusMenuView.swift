@@ -46,6 +46,7 @@ public struct StatusMenuView: View {
     private var statusHeader: some View {
         HStack(spacing: 10) {
             ClaudeIconView(status: statusManager.currentStatus, size: 22)
+                .accessibilityLabel(Text("Claude status: \(statusManager.statusDescription)"))
                 .opacity(headerPulseOpacity)
                 .onChange(of: statusManager.animationPhase) { phase in
                     switch phase {
@@ -76,6 +77,14 @@ public struct StatusMenuView: View {
                 Text("Updated \(statusManager.lastUpdatedString)")
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
+
+                if let errorMessage = statusManager.errorMessage {
+                    Text(errorMessage)
+                        .font(.system(size: 11))
+                        .foregroundColor(.red)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
 
             Spacer()

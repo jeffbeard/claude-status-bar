@@ -16,10 +16,16 @@ Work MUST be performed on dedicated branches created off `main`.
 - `refactor/<short-name>` — Refactoring or visual redesigns without breaking contracts (e.g. `refactor/claude-status-icon`)
 
 ### Branch Lifecycle
-1. **Create Branch**: `git checkout -b <type>/<short-name>`
-2. **Implement & Test**: Write unit tests first (TDD), implement code, and verify tests pass.
-3. **Validate OpenSpec**: Run `openspec validate [change-id] --strict` if spec deltas were created.
-4. **Merge**: Create pull request to `main`. Humans merge PRs.
+1. **Clarify**: Ask what is ambiguous and propose the approach. Take no action — no branch,
+   no edits, no commits — until the human says go. Read-only investigation is fine before
+   approval.
+2. **Specify**: Write the OpenSpec change under `openspec/changes/<change-id>/` and run
+   `openspec validate <change-id> --strict`. This applies to build tooling and scripts too,
+   not only to app behavior — see "Everything gets a change" below.
+3. **Create Branch**: `git checkout -b <type>/<short-name>`
+4. **Implement & Test**: Write unit tests first (TDD), implement code, and verify tests pass.
+5. **Merge**: Create pull request to `main`. Humans merge PRs.
+6. **Archive**: Run `openspec archive <change-id>` once the change is deployed.
 
 ### Commit Message Format
 ```
@@ -51,6 +57,64 @@ This project uses **OpenSpec** for specification management in `openspec/`.
    - `specs/<capability>/spec.md`: Delta specifications using `## ADDED|MODIFIED|REMOVED Requirements` with `#### Scenario:` blocks.
 2. **Validation**: Run `openspec validate <change-id> --strict` before submitting changes.
 3. **Archive**: Move completed proposals to `archive/` after deployment.
+
+### Everything gets a change
+
+"It does not alter application behavior" is not a reason to skip OpenSpec. Build tooling,
+packaging scripts, and CI configuration get a change and a spec delta under their own
+capability (e.g. `packaging`) the same as app code does. This rule exists because the
+opposite reasoning was applied twice — to `scripts/package.sh` and to the universal binary
+fix — and both shipped undocumented. The second one shipped a real defect: an `x86_64`-only
+disk image, which no requirement forbade because no requirement existed.
+
+A change that genuinely touches no capability — repository layout, assistant configuration,
+prose-only documentation — still gets a change directory, with `skip_specs: true` in its
+`.openspec.yaml`. That is the supported way to say "no delta," and `--strict` accepts it. It
+is not an escape hatch for tooling that guarantees user-visible behavior: producing an
+installable disk image is a capability, so it gets requirements.
+
+### Archiving
+
+Archives live in `openspec/changes/archive/<YYYY-MM-DD>-<change-id>/`. Archive with
+`openspec archive <change-id>` — add `--skip-specs` for a change that has no delta — and
+never by moving directories by hand. Hand-moving is how this project ended up with archived
+changes in two directories, which had to be consolidated later.
+
+After archiving a brand-new capability, replace the `TBD - created by archiving` placeholder
+the command writes into the promoted spec's `## Purpose`.
+
+### `openspec/` is the only home for change documentation
+
+The superpowers skills (`brainstorming`, `writing-plans`) default to writing into
+`docs/superpowers/specs/` and `docs/superpowers/plans/`. **Do not use those paths in this
+project.** Their output overlaps the OpenSpec artifacts almost exactly — a brainstorming
+design doc is a `proposal.md` plus a `design.md`, and a plan is a `tasks.md` — and splitting
+them across two trees produces two records that drift apart.
+
+Use the skills for what OpenSpec does not cover — clarifying questions, exploring and
+rejecting approaches, TDD step ordering, subagent-driven execution — and write their output
+into the change directory instead:
+
+| Superpowers output | Write it here |
+|---|---|
+| Design doc | `openspec/changes/<change-id>/design.md` |
+| Implementation plan | `openspec/changes/<change-id>/plan.md`, with the checklist in `tasks.md` |
+
+The one thing only OpenSpec provides is the spec delta in
+`openspec/changes/<change-id>/specs/<capability>/spec.md`, which is promoted into
+`openspec/specs/` on archive and validated by `--strict`. Write it in every change that
+touches a capability.
+
+### Assistant Integration Files
+
+`openspec update` writes the same OpenSpec skills and commands once per assistant: `.agent/`
+(Antigravity), `.claude/` (Claude Code), `.gemini/` (Gemini CLI), and `.github/skills` plus
+`.github/prompts` (Copilot). `.agent/` and `.github/` are byte-identical to each other, as
+are `.claude/` and `.gemini/`.
+
+Only `.agent/` and `.claude/` are tracked — the two assistants actually used here. The other
+two are gitignored and regenerated on demand by rerunning `openspec update`. `.github/`
+itself is not ignored, so workflows can live there.
 
 ---
 
