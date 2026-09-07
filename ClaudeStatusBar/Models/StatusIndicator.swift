@@ -71,7 +71,7 @@ public enum ComponentStatus: String, Codable, Sendable {
         case .partialOutage: return "Partial Outage"
         case .majorOutage: return "Major Outage"
         case .underMaintenance: return "Under Maintenance"
-        case .unknown: return "Unknown"
+        case .unknown: return "No Internet"
         }
     }
 

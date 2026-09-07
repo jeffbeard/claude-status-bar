@@ -37,4 +37,41 @@ final class StatusManagerTests: XCTestCase {
         XCTAssertFalse(hiddenHealthyComp.shouldDisplay)
         XCTAssertTrue(hiddenDegradedComp.shouldDisplay)
     }
+
+    func testSnapshotRecordingIntegration() async throws {
+        let store = try SQLiteStore(dbPath: ":memory:")
+        let manager = StatusManager(sqliteStore: store, autoStart: false)
+
+        let json = """
+        {
+            "status": {"indicator": "none", "description": "All Systems Operational"},
+            "components": [
+                {"id": "api", "name": "Claude API", "status": "operational", "position": 1}
+            ],
+            "incidents": []
+        }
+        """.data(using: .utf8)!
+
+        let summary = try JSONDecoder().decode(SummaryResponse.self, from: json)
+        await manager.recordSnapshotForTesting(summary: summary)
+
+        let (availability, total, operational) = try await store.fetchAvailability(days: 7)
+        XCTAssertEqual(total, 1)
+        XCTAssertEqual(operational, 1)
+        XCTAssertEqual(availability, 100.0)
+    }
+
+    func testOfflineStateHandling() {
+        let manager = StatusManager(autoStart: false)
+
+        let healthyComp = Component(id: "1", name: "Claude API", status: .operational, description: nil, position: 1, updatedAt: nil, onlyShowIfDegraded: false)
+        manager.components = [healthyComp]
+
+        let error = NSError(domain: NSURLErrorDomain, code: NSURLErrorNotConnectedToInternet)
+        manager.handleFetchError(error)
+
+        XCTAssertEqual(manager.currentStatus, .unknown)
+        XCTAssertEqual(manager.statusDescription, "No Internet Connection")
+        XCTAssertEqual(manager.components.first?.status, .unknown)
+    }
 }

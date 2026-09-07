@@ -56,7 +56,7 @@ final class StatusManagerRefreshTests: XCTestCase {
         await manager.refresh()
 
         XCTAssertEqual(manager.currentStatus, .unknown)
-        XCTAssertEqual(manager.statusDescription, "Failed to fetch status")
+        XCTAssertEqual(manager.statusDescription, "No Internet Connection")
         XCTAssertNotNil(manager.errorMessage)
     }
 

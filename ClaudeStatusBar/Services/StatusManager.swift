@@ -46,13 +46,21 @@ public class StatusManager: ObservableObject {
     private let refreshInterval: TimeInterval = 60
     private var animationTask: Task<Void, Never>?
     private var screenObserverTask: Task<Void, Never>?
+    public let sqliteStore: SQLiteStore
 
     /// - Parameters:
     ///   - service: Status feed used by `refresh()`.
+    ///   - sqliteStore: Snapshot store written after every successful refresh.
+    ///     Defaults to the shared on-disk store; tests pass an in-memory one.
     ///   - autoStart: When `true` the manager registers for notifications, reads the
     ///     login-item state and begins polling. Pass `false` for tests and previews.
-    public init(service: any StatusFetching = ClaudeStatusService.shared, autoStart: Bool = true) {
+    public init(
+        service: any StatusFetching = ClaudeStatusService.shared,
+        sqliteStore: SQLiteStore? = nil,
+        autoStart: Bool = true
+    ) {
         self.service = service
+        self.sqliteStore = sqliteStore ?? SQLiteStore.shared
         if autoStart {
             launchAtLogin = SMAppService.mainApp.status == .enabled
         }
@@ -115,6 +123,13 @@ public class StatusManager: ObservableObject {
             let statusDidChange = lastKnownStatus != .unknown && lastKnownStatus != newStatus
             lastKnownStatus = newStatus
 
+            // Persist snapshot to SQLite
+            let store = sqliteStore
+            Task {
+                try? await store.recordSnapshot(summary: summary)
+                _ = try? await store.purgeOldSnapshots(olderThanDays: 90)
+            }
+
             if statusDidChange {
                 sendStatusChangeNotification(description: newDescription)
                 triggerAnimation(to: newStatus, description: newDescription)
@@ -126,11 +141,30 @@ public class StatusManager: ObservableObject {
             }
 
         } catch {
-            errorMessage = error.localizedDescription
-            currentStatus = .unknown
-            statusDescription = "Failed to fetch status"
-            updateMenuBarTint()
+            handleFetchError(error)
         }
+    }
+
+    public func handleFetchError(_ error: Error) {
+        errorMessage = error.localizedDescription
+        currentStatus = .unknown
+        statusDescription = "No Internet Connection"
+        components = components.map { comp in
+            Component(
+                id: comp.id,
+                name: comp.name,
+                status: .unknown,
+                description: "No Internet",
+                position: comp.position,
+                updatedAt: comp.updatedAt,
+                onlyShowIfDegraded: comp.onlyShowIfDegraded
+            )
+        }
+        updateMenuBarTint()
+    }
+
+    public func recordSnapshotForTesting(summary: SummaryResponse) async {
+        try? await sqliteStore.recordSnapshot(summary: summary)
     }
 
     // MARK: - Computed Properties
@@ -319,6 +353,10 @@ public class StatusManager: ObservableObject {
     }
 
     // MARK: - Actions
+
+    public func openDashboardWindow() {
+        DashboardWindowController.shared.show(statusManager: self)
+    }
 
     public func openClaudeStatus() {
         if let url = URL(string: "https://status.claude.com") {
