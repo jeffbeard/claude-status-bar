@@ -23,6 +23,10 @@ The application SHALL fetch service status from `https://status.claude.com/api/v
 - **WHEN** the API returns unknown or malformed component entries
 - **THEN** malformed elements are safely discarded without causing the entire response decoding to fail.
 
+#### Scenario: Network connection failure or offline state
+- **WHEN** network request fails due to no internet connection or host unreachability
+- **THEN** status indicator is mapped to unknown with description "No Internet Connection" and all displayed components show gray status badges with text "No Internet".
+
 ### Requirement: Menu Bar Interface
 The application SHALL render a native macOS menu bar status item displaying current health status and detailed menu breakdown, and SHALL make that status available to assistive technology.
 
