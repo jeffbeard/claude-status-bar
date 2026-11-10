@@ -2,12 +2,12 @@
 
 ## 1. Housekeeping
 
-- [ ] 1.1 Add `.superpowers/` to `.gitignore`; verify `git status` no longer lists `.superpowers/brainstorm/`.
+- [x] 1.1 Add `.superpowers/` to `.gitignore`; verify `git status` no longer lists `.superpowers/brainstorm/`.
 
 ## 2. History range model
 
-- [ ] 2.1 Write `HistoryRangeTests`: raw values are 7, 30, 90; `allCases` is ordered 7, 30, 90; `.thirtyDays` is the default; each case has a non-empty label. Run `swift test --filter HistoryRangeTests` and confirm it fails to compile.
-- [ ] 2.2 Add `ClaudeStatusBar/Models/HistoryRange.swift` (`Int` raw value, `CaseIterable`, `Identifiable`, `Sendable`, `label`, `static let `default``). Run the filter again and confirm it passes.
+- [x] 2.1 Write `HistoryRangeTests`: raw values are 7, 30, 90; `allCases` is ordered 7, 30, 90; `.thirtyDays` is the default; each case has a non-empty label. Run `swift test --filter HistoryRangeTests` and confirm it fails to compile.
+- [x] 2.2 Add `ClaudeStatusBar/Models/HistoryRange.swift` (`Int` raw value, `CaseIterable`, `Identifiable`, `Sendable`, `label`, `static let `default``). Run the filter again and confirm it passes.
 
 ## 3. Store queries
 
