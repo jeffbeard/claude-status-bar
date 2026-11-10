@@ -11,10 +11,10 @@
 
 ## 3. Store queries
 
-- [ ] 3.1 Write `SQLiteStoreTests.testIncidentHistoryWindowFiltersByCreatedAt`: insert incidents created 1, 10, and 40 days ago; `fetchIncidentHistory(days: 30)` returns the first two newest first, `fetchIncidentHistory()` still returns all three. Confirm it fails.
-- [ ] 3.2 Add `days: Int? = nil` to `fetchIncidentHistory` with a `created_at >= ?` cutoff when set. Confirm 3.1 passes and the existing incident tests still pass.
-- [ ] 3.3 Write `SQLiteStoreTests.testComponentAvailabilityPerComponent`: record snapshots where component A is operational 3 of 4 polls and component B 4 of 4; `fetchComponentAvailability(days: 7)` returns 75.0 for A and 100.0 for B keyed by component id, with names; a snapshot 10 days old is excluded; a component with no rows in the window is absent. Confirm it fails.
-- [ ] 3.4 Add `ComponentAvailability` (`componentName`, `availabilityPercentage`) and `fetchComponentAvailability(days:) -> [String: ComponentAvailability]` to `SQLiteStore`. Confirm 3.3 passes.
+- [x] 3.1 Write `SQLiteStoreTests.testIncidentHistoryWindowFiltersByCreatedAt`: insert incidents created 1, 10, and 40 days ago; `fetchIncidentHistory(days: 30)` returns the first two newest first, `fetchIncidentHistory()` still returns all three. Confirm it fails.
+- [x] 3.2 Add `days: Int? = nil` to `fetchIncidentHistory` with a `created_at >= ?` cutoff when set. Confirm 3.1 passes and the existing incident tests still pass.
+- [x] 3.3 Write `SQLiteStoreTests.testComponentAvailabilityPerComponent`: record snapshots where component A is operational 3 of 4 polls and component B 4 of 4; `fetchComponentAvailability(days: 7)` returns 75.0 for A and 100.0 for B keyed by component id, with names; a snapshot 10 days old is excluded; a component with no rows in the window is absent. Confirm it fails.
+- [x] 3.4 Add `ComponentAvailability` (`componentName`, `availabilityPercentage`) and `fetchComponentAvailability(days:) -> [String: ComponentAvailability]` to `SQLiteStore`. Confirm 3.3 passes.
 
 ## 4. Strip assembly
 

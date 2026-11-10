@@ -40,6 +40,18 @@ public struct IncidentLogRecord: Sendable, Identifiable, Equatable {
     }
 }
 
+/// A component's availability over a window: operational component snapshots over all of its
+/// component snapshots in that window.
+public struct ComponentAvailability: Sendable, Equatable {
+    public let componentName: String
+    public let availabilityPercentage: Double
+
+    public init(componentName: String, availabilityPercentage: Double) {
+        self.componentName = componentName
+        self.availabilityPercentage = availabilityPercentage
+    }
+}
+
 public actor SQLiteStore: Sendable {
     public static let shared: SQLiteStore = {
         do {
@@ -326,14 +338,60 @@ public actor SQLiteStore: Sendable {
         return severity(a) >= severity(b) ? a : b
     }
 
+    // MARK: - Per-Component Availability Query
+
+    /// Availability per component over the last `days` days, keyed by component id. A component
+    /// with no component snapshots in the window is absent from the result.
+    public func fetchComponentAvailability(days: Int) throws -> [String: ComponentAvailability] {
+        guard let db = db else { return [:] }
+
+        let cutoffDate = Date().addingTimeInterval(-Double(days * 24 * 3600)).timeIntervalSince1970
+        let sql = """
+        SELECT
+            c.component_id,
+            c.component_name,
+            SUM(CASE WHEN c.status = 'operational' THEN 1 ELSE 0 END) AS operational_count,
+            COUNT(*) AS total_count
+        FROM component_snapshots c
+        JOIN status_snapshots s ON c.snapshot_id = s.id
+        WHERE s.timestamp >= ?
+        GROUP BY c.component_id;
+        """
+
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
+            return [:]
+        }
+        defer { sqlite3_finalize(stmt) }
+
+        sqlite3_bind_double(stmt, 1, cutoffDate)
+
+        var results: [String: ComponentAvailability] = [:]
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            guard let idCString = sqlite3_column_text(stmt, 0),
+                  let nameCString = sqlite3_column_text(stmt, 1) else { continue }
+            let operational = Double(sqlite3_column_int64(stmt, 2))
+            let total = Double(sqlite3_column_int64(stmt, 3))
+            guard total > 0 else { continue }
+            results[String(cString: idCString)] = ComponentAvailability(
+                componentName: String(cString: nameCString),
+                availabilityPercentage: (operational / total) * 100.0
+            )
+        }
+        return results
+    }
+
     // MARK: - Incident History Query
 
-    public func fetchIncidentHistory(limit: Int = 50) throws -> [IncidentLogRecord] {
+    /// Incidents newest first. When `days` is given, only incidents created within the last
+    /// `days` days are returned; `nil` returns the most recent `limit` regardless of age.
+    public func fetchIncidentHistory(days: Int? = nil, limit: Int = 50) throws -> [IncidentLogRecord] {
         guard let db = db else { return [] }
 
         let sql = """
         SELECT id, name, status, impact, created_at, updated_at
         FROM incidents
+        WHERE (? IS NULL OR created_at >= ?)
         ORDER BY created_at DESC
         LIMIT ?;
         """
@@ -344,7 +402,15 @@ public actor SQLiteStore: Sendable {
         }
         defer { sqlite3_finalize(stmt) }
 
-        sqlite3_bind_int(stmt, 1, Int32(limit))
+        if let days = days {
+            let cutoff = Date().addingTimeInterval(-Double(days * 24 * 3600)).timeIntervalSince1970
+            sqlite3_bind_double(stmt, 1, cutoff)
+            sqlite3_bind_double(stmt, 2, cutoff)
+        } else {
+            sqlite3_bind_null(stmt, 1)
+            sqlite3_bind_null(stmt, 2)
+        }
+        sqlite3_bind_int(stmt, 3, Int32(limit))
 
         var records: [IncidentLogRecord] = []
         while sqlite3_step(stmt) == SQLITE_ROW {
