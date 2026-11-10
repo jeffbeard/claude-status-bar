@@ -31,7 +31,7 @@
 ## 6. Integration
 
 - [x] 6.1 Run `swift test` and `openspec validate dashboard-range-picker --strict`; both pass.
-- [ ] 6.2 Open a PR from `feature/dashboard-range-picker` to `main` with the summary and test plan; humans merge.
+- [x] 6.2 Open a PR from `feature/dashboard-range-picker` to `main` with the summary and test plan; humans merge.
 
 ## Workflow follow-up
 
