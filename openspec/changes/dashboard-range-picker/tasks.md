@@ -18,8 +18,8 @@
 
 ## 4. Strip assembly
 
-- [ ] 4.1 Write `DailyStripBuilderTests`: with `days: 5` and a fixed `endingOn` date and time zone, (a) a component with records on days 1, 2, and 5 yields five cells with `.noData` on days 3 and 4; (b) cells are ordered oldest to newest; (c) a component absent from the availability map has `nil` availability; (d) rows sort by component name; (e) `firstDate` and `lastDate` on the result match the range ends. Confirm it fails to compile.
-- [ ] 4.2 Add `ClaudeStatusBar/Views/DailyStripBuilder.swift` with `StripCell`, `ComponentStripRow`, and `DailyStripBuilder.rows(statuses:availability:days:endingOn:calendar:)` using a `yyyy-MM-dd` formatter in the calendar's time zone. Confirm 4.1 passes.
+- [x] 4.1 Write `DailyStripBuilderTests`: with `days: 5` and a fixed `endingOn` date and time zone, (a) a component with records on days 1, 2, and 5 yields five cells with `.noData` on days 3 and 4; (b) cells are ordered oldest to newest; (c) a component absent from the availability map has `nil` availability; (d) rows sort by component name; (e) `firstDate` and `lastDate` on the result match the range ends. Confirm it fails to compile.
+- [x] 4.2 Add `ClaudeStatusBar/Views/DailyStripBuilder.swift` with `StripCell`, `ComponentStripRow`, and `DailyStripBuilder.rows(statuses:availability:days:endingOn:calendar:)` using a `yyyy-MM-dd` formatter in the calendar's time zone. Confirm 4.1 passes.
 
 ## 5. Dashboard view
 
