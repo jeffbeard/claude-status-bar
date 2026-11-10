@@ -24,6 +24,12 @@
 		B1000001233F0001C /* ClaudeIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000001233F00076 /* ClaudeIcon.swift */; };
 		B1000001233F0001D /* SQLiteStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000001233F00013 /* SQLiteStoreTests.swift */; };
 		B1000001233F0001E /* DashboardViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000001233F00014 /* DashboardViewTests.swift */; };
+		B1000001233F00101 /* HistoryRange.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000001233F00111 /* HistoryRange.swift */; };
+		B1000001233F00102 /* DailyStripBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000001233F00112 /* DailyStripBuilder.swift */; };
+		B1000001233F00103 /* DashboardViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000001233F00113 /* DashboardViewModel.swift */; };
+		B1000001233F00104 /* HistoryRangeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000001233F00114 /* HistoryRangeTests.swift */; };
+		B1000001233F00105 /* DailyStripBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000001233F00115 /* DailyStripBuilderTests.swift */; };
+		B1000001233F00106 /* DashboardViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000001233F00116 /* DashboardViewModelTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -58,6 +64,12 @@
 		B1000001233F00090 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B1000001233F00099 /* ClaudeStatusBarTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ClaudeStatusBarTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B1000001233F00100 /* ClaudeStatusBar.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ClaudeStatusBar.entitlements; sourceTree = "<group>"; };
+		B1000001233F00111 /* HistoryRange.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryRange.swift; sourceTree = "<group>"; };
+		B1000001233F00112 /* DailyStripBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyStripBuilder.swift; sourceTree = "<group>"; };
+		B1000001233F00113 /* DashboardViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViewModel.swift; sourceTree = "<group>"; };
+		B1000001233F00114 /* HistoryRangeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryRangeTests.swift; sourceTree = "<group>"; };
+		B1000001233F00115 /* DailyStripBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyStripBuilderTests.swift; sourceTree = "<group>"; };
+		B1000001233F00116 /* DashboardViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViewModelTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -113,6 +125,7 @@
 		B1000001233FGGG04 /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				B1000001233F00111 /* HistoryRange.swift */,
 				B1000001233F00020 /* StatusIndicator.swift */,
 				B1000001233F00030 /* ClaudeStatus.swift */,
 			);
@@ -133,6 +146,8 @@
 		B1000001233FGGG06 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				B1000001233F00113 /* DashboardViewModel.swift */,
+				B1000001233F00112 /* DailyStripBuilder.swift */,
 				B1000001233F00060 /* StatusMenuView.swift */,
 				B1000001233F00070 /* ComponentRowView.swift */,
 				B1000001233F00075 /* IncidentRowView.swift */,
@@ -145,6 +160,9 @@
 		B1000001233FGGG07 /* ClaudeStatusBarTests */ = {
 			isa = PBXGroup;
 			children = (
+				B1000001233F00116 /* DashboardViewModelTests.swift */,
+				B1000001233F00115 /* DailyStripBuilderTests.swift */,
+				B1000001233F00114 /* HistoryRangeTests.swift */,
 				B1000001233F00011 /* ClaudeStatusDecodingTests.swift */,
 				B1000001233F00012 /* StatusManagerTests.swift */,
 				B1000001233F00013 /* SQLiteStoreTests.swift */,
@@ -244,6 +262,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B1000001233F00103 /* DashboardViewModel.swift in Sources */,
+				B1000001233F00102 /* DailyStripBuilder.swift in Sources */,
+				B1000001233F00101 /* HistoryRange.swift in Sources */,
 				B1000001233F00001 /* ClaudeStatusBarApp.swift in Sources */,
 				B1000001233F00002 /* StatusIndicator.swift in Sources */,
 				B1000001233F00003 /* ClaudeStatus.swift in Sources */,
@@ -263,6 +284,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B1000001233F00106 /* DashboardViewModelTests.swift in Sources */,
+				B1000001233F00105 /* DailyStripBuilderTests.swift in Sources */,
+				B1000001233F00104 /* HistoryRangeTests.swift in Sources */,
 				B1000001233F0001A /* ClaudeStatusDecodingTests.swift in Sources */,
 				B1000001233F0001B /* StatusManagerTests.swift in Sources */,
 				B1000001233F0001D /* SQLiteStoreTests.swift in Sources */,
