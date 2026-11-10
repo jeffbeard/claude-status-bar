@@ -36,3 +36,6 @@ xcuserdata/
 /.github/skills/
 /.github/prompts/
 .claude/settings.local.json
+
+# Brainstorming mockups (superpowers visual companion)
+/.superpowers/

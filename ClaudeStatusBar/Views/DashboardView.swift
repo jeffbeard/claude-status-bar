@@ -3,24 +3,21 @@ import AppKit
 
 public struct DashboardView: View {
     @ObservedObject public var statusManager: StatusManager
-    @State private var availability7d: Double = 100.0
-    @State private var availability30d: Double = 100.0
-    @State private var totalSnapshots7d: Int = 0
-    @State private var operationalSnapshots7d: Int = 0
-    @State private var dailyStatuses: [DailyComponentStatus] = []
-    @State private var incidents: [IncidentLogRecord] = []
-    @State private var isLoading: Bool = true
+    @StateObject private var model: DashboardViewModel
 
     public init(statusManager: StatusManager) {
         self.statusManager = statusManager
+        _model = StateObject(wrappedValue: DashboardViewModel(store: statusManager.sqliteStore))
     }
+
+    private var rangeCaption: String { "last \(model.range.label)" }
 
     public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 headerSection
 
-                if isLoading {
+                if model.isLoading {
                     HStack {
                         Spacer()
                         ProgressView("Loading reliability data...")
@@ -29,35 +26,43 @@ public struct DashboardView: View {
                     .padding(.vertical, 40)
                 } else {
                     kpiCardsGrid
-                    componentUptimeTimelineSection
+                    dailyStatusSection
                     incidentHistorySection
                 }
             }
             .padding(20)
         }
         .frame(minWidth: 640, minHeight: 480)
-        .task {
-            await loadDashboardData()
+        .task(id: model.range) {
+            await model.load()
         }
     }
 
     // MARK: - Header
 
     private var headerSection: some View {
-        HStack {
+        HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Claude Reliability & Outage Dashboard")
+                Text("Claude Reliability")
                     .font(.system(size: 20, weight: .bold))
-                Text("Historical status analytics and component availability calculated from local polls")
+                Text("Availability and incidents from this Mac's own polls of status.claude.com")
                     .font(.system(size: 12))
                     .foregroundColor(.secondary)
             }
             Spacer()
 
-            Button(action: {
-                Task {
-                    await loadDashboardData()
+            Picker("History range", selection: $model.range) {
+                ForEach(HistoryRange.allCases) { range in
+                    Text(range.label).tag(range)
                 }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .frame(width: 200)
+            .accessibilityLabel(Text("History range"))
+
+            Button(action: {
+                Task { await model.load() }
             }) {
                 HStack(spacing: 4) {
                     Image(systemName: "arrow.clockwise")
@@ -72,31 +77,24 @@ public struct DashboardView: View {
     private var kpiCardsGrid: some View {
         HStack(spacing: 16) {
             kpiCard(
-                title: "7-Day Availability",
-                value: String(format: "%.1f%%", availability7d),
+                title: "Availability, \(rangeCaption)",
+                value: String(format: "%.1f%%", model.availability),
                 icon: "checkmark.seal.fill",
-                color: availability7d >= 99.0 ? .green : (availability7d >= 95.0 ? .yellow : .red)
+                color: model.availability >= 99.0 ? .green : (model.availability >= 95.0 ? .yellow : .red)
             )
 
             kpiCard(
-                title: "30-Day Availability",
-                value: String(format: "%.1f%%", availability30d),
-                icon: "calendar.badge.clock",
-                color: availability30d >= 99.0 ? .green : (availability30d >= 95.0 ? .yellow : .red)
-            )
-
-            kpiCard(
-                title: "Downtime (7 Days)",
-                value: "\(totalDowntimeMinutes) mins",
+                title: "Downtime, \(rangeCaption)",
+                value: "\(model.downtimeMinutes) min",
                 icon: "exclamationmark.triangle.fill",
-                color: totalDowntimeMinutes == 0 ? .green : .orange
+                color: model.downtimeMinutes == 0 ? .green : .orange
             )
 
             kpiCard(
-                title: "Recorded Incidents",
-                value: "\(incidents.count)",
+                title: "Incidents, \(rangeCaption)",
+                value: "\(model.incidents.count)",
                 icon: "list.bullet.rectangle",
-                color: incidents.isEmpty ? .green : .blue
+                color: model.incidents.isEmpty ? .green : .blue
             )
         }
     }
@@ -120,17 +118,23 @@ public struct DashboardView: View {
         .cornerRadius(8)
     }
 
-    // MARK: - Component Uptime Timeline
+    // MARK: - Daily Status Strip
 
-    private var componentUptimeTimelineSection: some View {
+    private static let noDataColor = Color(NSColor.quaternaryLabelColor)
+    private static let nameColumnWidth: CGFloat = 150
+    private static let percentColumnWidth: CGFloat = 56
+
+    private var dailyStatusSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Component Status Timeline (7 Days)")
-                .font(.system(size: 14, weight: .semibold))
+            HStack(alignment: .firstTextBaseline) {
+                Text("Daily status by component, \(rangeCaption)")
+                    .font(.system(size: 14, weight: .semibold))
+                Spacer()
+                legend
+            }
 
-            let componentsMap = Dictionary(grouping: dailyStatuses, by: \.componentName)
-
-            if componentsMap.isEmpty {
-                Text("No snapshot data recorded yet. Polling will automatically accumulate history.")
+            if model.stripRows.isEmpty {
+                Text("No polls recorded yet for this range. History accumulates automatically while the app runs.")
                     .font(.system(size: 12))
                     .foregroundColor(.secondary)
                     .padding()
@@ -138,11 +142,10 @@ public struct DashboardView: View {
                     .background(Color(NSColor.controlBackgroundColor))
                     .cornerRadius(8)
             } else {
-                VStack(spacing: 12) {
-                    ForEach(componentsMap.keys.sorted(), id: \.self) { compName in
-                        if let statuses = componentsMap[compName] {
-                            componentTimelineRow(name: compName, statuses: statuses)
-                        }
+                VStack(spacing: 10) {
+                    dateLabels
+                    ForEach(model.stripRows) { row in
+                        stripRow(row)
                     }
                 }
                 .padding(14)
@@ -152,37 +155,107 @@ public struct DashboardView: View {
         }
     }
 
-    private func componentTimelineRow(name: String, statuses: [DailyComponentStatus]) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(name)
-                    .font(.system(size: 12, weight: .medium))
-                Spacer()
-                Text("Status History")
-                    .font(.system(size: 10))
-                    .foregroundColor(.secondary)
-            }
+    private var legend: some View {
+        HStack(spacing: 10) {
+            legendItem(ComponentStatus.operational.color, "Operational")
+            legendItem(ComponentStatus.degradedPerformance.color, "Degraded")
+            legendItem(ComponentStatus.partialOutage.color, "Partial outage")
+            legendItem(ComponentStatus.majorOutage.color, "Major outage")
+            legendItem(ComponentStatus.underMaintenance.color, "Maintenance")
+            legendItem(Self.noDataColor, "No data")
+        }
+    }
 
-            HStack(spacing: 4) {
-                ForEach(statuses) { status in
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(status.status.color)
+    private func legendItem(_ color: Color, _ label: String) -> some View {
+        HStack(spacing: 4) {
+            RoundedRectangle(cornerRadius: 2)
+                .fill(color)
+                .frame(width: 10, height: 10)
+            Text(label)
+                .font(.system(size: 10))
+                .foregroundColor(.secondary)
+        }
+    }
+
+    private var dateLabels: some View {
+        HStack {
+            Spacer().frame(width: Self.nameColumnWidth)
+            Text(model.dateKeys.first.map(displayDate) ?? "")
+            Spacer()
+            Text(model.dateKeys.last.map(displayDate) ?? "")
+            Spacer().frame(width: Self.percentColumnWidth)
+        }
+        .font(.system(size: 10))
+        .foregroundColor(.secondary)
+    }
+
+    private func stripRow(_ row: ComponentStripRow) -> some View {
+        HStack(spacing: 12) {
+            Text(row.componentName)
+                .font(.system(size: 12, weight: .medium))
+                .lineLimit(1)
+                .frame(width: Self.nameColumnWidth, alignment: .leading)
+
+            HStack(spacing: 2) {
+                ForEach(row.cells) { cell in
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(cellColor(cell))
+                        .frame(maxWidth: .infinity)
                         .frame(height: 16)
-                        .help("\(status.dateString): \(status.status.description)")
+                        .help(cellHelp(cell))
                 }
             }
+
+            Text(row.availabilityPercentage.map { String(format: "%.1f%%", $0) } ?? "–")
+                .font(.system(size: 11))
+                .foregroundColor(.secondary)
+                .monospacedDigit()
+                .frame(width: Self.percentColumnWidth, alignment: .trailing)
         }
+        .accessibilityElement(children: .combine)
+    }
+
+    private func cellColor(_ cell: StripCell) -> Color {
+        switch cell.status {
+        case .status(let status): return status.color
+        case .noData: return Self.noDataColor
+        }
+    }
+
+    private func cellHelp(_ cell: StripCell) -> String {
+        switch cell.status {
+        case .status(let status): return "\(displayDate(cell.dateString)): \(status.description)"
+        case .noData: return "\(displayDate(cell.dateString)): no data"
+        }
+    }
+
+    private static let keyFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
+
+    private static let displayFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.setLocalizedDateFormatFromTemplate("MMM d")
+        return f
+    }()
+
+    private func displayDate(_ key: String) -> String {
+        guard let date = Self.keyFormatter.date(from: key) else { return key }
+        return Self.displayFormatter.string(from: date)
     }
 
     // MARK: - Incident History
 
     private var incidentHistorySection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Recent Incident History")
+            Text("Incidents, \(rangeCaption)")
                 .font(.system(size: 14, weight: .semibold))
 
-            if incidents.isEmpty {
-                Text("No recent incidents recorded.")
+            if model.incidents.isEmpty {
+                Text("No incidents recorded in this range.")
                     .font(.system(size: 12))
                     .foregroundColor(.secondary)
                     .padding()
@@ -191,7 +264,7 @@ public struct DashboardView: View {
                     .cornerRadius(8)
             } else {
                 VStack(spacing: 8) {
-                    ForEach(incidents) { inc in
+                    ForEach(model.incidents) { inc in
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(inc.name)
@@ -234,30 +307,5 @@ public struct DashboardView: View {
         case "critical": return .red
         default: return .gray
         }
-    }
-
-    private var totalDowntimeMinutes: Int {
-        let nonOperationalSnapshots = totalSnapshots7d - operationalSnapshots7d
-        return nonOperationalSnapshots * 1 // Each poll represents 1 minute interval
-    }
-
-    // MARK: - Data Loading
-
-    private func loadDashboardData() async {
-        isLoading = true
-        let store = statusManager.sqliteStore
-
-        let (avail7, total7, op7) = (try? await store.fetchAvailability(days: 7)) ?? (100.0, 0, 0)
-        let (avail30, _, _) = (try? await store.fetchAvailability(days: 30)) ?? (100.0, 0, 0)
-        let daily = (try? await store.fetchDailyComponentStatuses(days: 7)) ?? []
-        let incList = (try? await store.fetchIncidentHistory(limit: 20)) ?? []
-
-        availability7d = avail7
-        availability30d = avail30
-        totalSnapshots7d = total7
-        operationalSnapshots7d = op7
-        dailyStatuses = daily
-        incidents = incList
-        isLoading = false
     }
 }
