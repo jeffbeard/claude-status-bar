@@ -26,10 +26,11 @@
 - [x] 5.1 Write `DashboardViewModelTests`: initial `range` is `.thirtyDays`; on a store seeded with a 10-day-old incident, `load()` at `.sevenDays` yields no incidents and `.thirtyDays` yields one; strip rows are range-width with no-data cells; availability and downtime fill. (Loader extracted to `DashboardViewModel` instead of exposing view `@State`, which does not persist outside a view hierarchy.) Confirm it fails.
 - [x] 5.2 Rewrite `DashboardView`: `@State range = HistoryRange.default`; segmented `Picker` in the header beside Refresh; `.task(id: range)` reload; three tiles (Availability, Downtime, Incidents, captioned "last N days"); strip section titled "Daily status by component, last N days" built from `DailyStripBuilder` with first/last date labels, legend (Operational, Degraded, Partial outage, Major outage, Maintenance, No data), per-row availability or a dash; incident list from `fetchIncidentHistory(days:)`. Confirm 5.1 passes and the full `swift test` is green.
 - [ ] 5.3 Launch the app (`swift run` or Xcode), open the dashboard, and confirm: 30 days selected by default, strip rows are 30 cells wide with gray cells for days before install, switching to 7 and 90 reloads every section, Refresh still works, no layout overflow at the 640 pt minimum width.
+  - 2026-11-10: verified functionally in the running Debug .app via accessibility (30 days selected by default, every caption and the date labels follow 7/30/90, 10 component rows render). Visual check for overflow at 640 pt still owed; screenshots were unavailable from the agent terminal.
 
 ## 6. Integration
 
-- [ ] 6.1 Run `swift test` and `openspec validate dashboard-range-picker --strict`; both pass.
+- [x] 6.1 Run `swift test` and `openspec validate dashboard-range-picker --strict`; both pass.
 - [ ] 6.2 Open a PR from `feature/dashboard-range-picker` to `main` with the summary and test plan; humans merge.
 
 ## Workflow follow-up
