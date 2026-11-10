@@ -9,7 +9,7 @@
 
 - [x] 2.1 Run `./scripts/package.sh` and confirm it publishes `dist/ClaudeStatusBar-1.3.0.dmg`.
 - [x] 2.2 Mount the image and confirm the app's `Info.plist` reports `CFBundleShortVersionString` `1.3.0` and `CFBundleVersion` `3`, then detach.
-- [ ] 2.3 Open a PR from `chore/version-1.3.0` to `main`; humans merge. Tagging and GitHub release stay manual.
+- [x] 2.3 Open a PR from `chore/version-1.3.0` to `main`; humans merge. Tagging and GitHub release stay manual.
 
 ## Workflow follow-up
 
