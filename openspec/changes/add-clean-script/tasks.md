@@ -10,7 +10,7 @@
 ## 2. Docs
 
 - [x] 2.1 Add a short "Cleaning build output" note under Building & Running in `README.md`; verify it renders in the section listing.
-- [ ] 2.2 Open a PR from `chore/clean-script` to `main`; humans merge.
+- [x] 2.2 Open a PR from `chore/clean-script` to `main`; humans merge.
 
 ## Workflow follow-up
 
