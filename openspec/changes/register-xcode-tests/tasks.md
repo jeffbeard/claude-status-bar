@@ -8,7 +8,7 @@
 
 - [x] 2.1 Add PBXBuildFile, PBXFileReference, group child, and Sources-phase entries for the five files; verify every file in `ClaudeStatusBarTests/` now appears as `<name> in Sources` in `project.pbxproj` and `plutil -lint` passes.
 - [x] 2.2 Re-run `xcodebuild test`; executed count matches `swift test` and all pass.
-- [ ] 2.3 Open a PR from `chore/xcode-test-target` to `main`; humans merge.
+- [x] 2.3 Open a PR from `chore/xcode-test-target` to `main`; humans merge.
 
 ## Workflow follow-up
 
