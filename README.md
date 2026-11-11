@@ -52,6 +52,18 @@ xcodebuild test -project ClaudeStatusBar.xcodeproj -scheme ClaudeStatusBar -dest
 
 3. Build and run (⌘R)
 
+#### Cleaning build output
+
+```bash
+./scripts/clean.sh --dry-run   # list what would go
+./scripts/clean.sh --keep-dist # remove .build/, build/, DerivedData; keep dist/
+./scripts/clean.sh             # remove everything, packaged images included
+```
+
+Stale copies of the app linger in DerivedData and stay registered with Launch
+Services, so a login item or Spotlight result can launch an old build instead of
+the one in `/Applications`. Cleaning removes them.
+
 ## Install
 
 Build an installable disk image:
