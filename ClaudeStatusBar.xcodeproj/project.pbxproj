@@ -30,6 +30,11 @@
 		B1000001233F00104 /* HistoryRangeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000001233F00114 /* HistoryRangeTests.swift */; };
 		B1000001233F00105 /* DailyStripBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000001233F00115 /* DailyStripBuilderTests.swift */; };
 		B1000001233F00106 /* DashboardViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000001233F00116 /* DashboardViewModelTests.swift */; };
+		B1000001233F00120 /* ClaudeStatusServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000001233F00130 /* ClaudeStatusServiceTests.swift */; };
+		B1000001233F00121 /* IncidentOrderingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000001233F00131 /* IncidentOrderingTests.swift */; };
+		B1000001233F00122 /* MenuBarTintTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000001233F00132 /* MenuBarTintTests.swift */; };
+		B1000001233F00123 /* StatusManagerRefreshTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000001233F00133 /* StatusManagerRefreshTests.swift */; };
+		B1000001233F00124 /* VersionConsistencyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000001233F00134 /* VersionConsistencyTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -70,6 +75,11 @@
 		B1000001233F00114 /* HistoryRangeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryRangeTests.swift; sourceTree = "<group>"; };
 		B1000001233F00115 /* DailyStripBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyStripBuilderTests.swift; sourceTree = "<group>"; };
 		B1000001233F00116 /* DashboardViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViewModelTests.swift; sourceTree = "<group>"; };
+		B1000001233F00130 /* ClaudeStatusServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeStatusServiceTests.swift; sourceTree = "<group>"; };
+		B1000001233F00131 /* IncidentOrderingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IncidentOrderingTests.swift; sourceTree = "<group>"; };
+		B1000001233F00132 /* MenuBarTintTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarTintTests.swift; sourceTree = "<group>"; };
+		B1000001233F00133 /* StatusManagerRefreshTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusManagerRefreshTests.swift; sourceTree = "<group>"; };
+		B1000001233F00134 /* VersionConsistencyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VersionConsistencyTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -160,6 +170,11 @@
 		B1000001233FGGG07 /* ClaudeStatusBarTests */ = {
 			isa = PBXGroup;
 			children = (
+				B1000001233F00134 /* VersionConsistencyTests.swift */,
+				B1000001233F00133 /* StatusManagerRefreshTests.swift */,
+				B1000001233F00132 /* MenuBarTintTests.swift */,
+				B1000001233F00131 /* IncidentOrderingTests.swift */,
+				B1000001233F00130 /* ClaudeStatusServiceTests.swift */,
 				B1000001233F00116 /* DashboardViewModelTests.swift */,
 				B1000001233F00115 /* DailyStripBuilderTests.swift */,
 				B1000001233F00114 /* HistoryRangeTests.swift */,
@@ -284,6 +299,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B1000001233F00124 /* VersionConsistencyTests.swift in Sources */,
+				B1000001233F00123 /* StatusManagerRefreshTests.swift in Sources */,
+				B1000001233F00122 /* MenuBarTintTests.swift in Sources */,
+				B1000001233F00121 /* IncidentOrderingTests.swift in Sources */,
+				B1000001233F00120 /* ClaudeStatusServiceTests.swift in Sources */,
 				B1000001233F00106 /* DashboardViewModelTests.swift in Sources */,
 				B1000001233F00105 /* DailyStripBuilderTests.swift in Sources */,
 				B1000001233F00104 /* HistoryRangeTests.swift in Sources */,
